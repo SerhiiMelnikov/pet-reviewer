@@ -1,0 +1,52 @@
+{
+  "name": "pet-reviewer",
+  "version": "0.1.0",
+  "description": "AI code reviewer CLI: reviews your git diff with Claude or Ollama, enforces custom rules, and gates commits on the result.",
+  "keywords": [
+    "code-review",
+    "ai",
+    "cli",
+    "git",
+    "claude",
+    "ollama",
+    "anthropic",
+    "commit"
+  ],
+  "author": "SerhiiMelnikov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SerhiiMelnikov/pet-reviewer.git"
+  },
+  "homepage": "https://github.com/SerhiiMelnikov/pet-reviewer#readme",
+  "bugs": {
+    "url": "https://github.com/SerhiiMelnikov/pet-reviewer/issues"
+  },
+  "type": "module",
+  "bin": {
+    "pet-reviewer": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "review": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsup",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
+    "commander": "^14.0.3",
+    "dotenv": "^17.4.2",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  }
+}
