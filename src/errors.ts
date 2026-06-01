@@ -70,7 +70,7 @@ export const ERRORS = {
   configProvider: (filename: string, value: string) =>
     new ReviewerError(
       EErrorCode.ConfigProvider,
-      `Invalid "provider" in ${filename}: "${value}". Use "claude", "ollama", or "gemini".`,
+      `Invalid "provider" in ${filename}: "${value}". Use "claude", "ollama", "gemini", or "openai-compatible".`,
     ),
   configBlockLevel: (value: string, allowed: string) =>
     new ReviewerError(

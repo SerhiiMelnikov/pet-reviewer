@@ -4,7 +4,7 @@ import { CONFIG_FILENAME } from "./config";
 import { ERRORS } from "./errors";
 
 export const CONFIG_TEMPLATE = `export default {
-  // Which provider to use by default: "claude", "ollama", or "gemini".
+  // Which provider to use by default: "claude", "ollama", "gemini", or "openai-compatible".
   provider: "claude",
 
   providers: {
@@ -21,6 +21,13 @@ export const CONFIG_TEMPLATE = `export default {
       model: "gemini-2.5-flash",
       // The key is read from the environment; never hard-code it here.
       apiKey: process.env.GEMINI_API_KEY,
+    },
+    "openai-compatible": {
+      model: "gpt-4o-mini",
+      // Point baseUrl at any OpenAI-compatible service (OpenRouter, Groq, ...).
+      baseUrl: "https://api.openai.com/v1",
+      // Set apiKey to that service's key variable.
+      apiKey: process.env.OPENAI_API_KEY,
     },
   },
 

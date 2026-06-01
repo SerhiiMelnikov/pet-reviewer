@@ -37,6 +37,7 @@ Flags (override config): `--provider`, `--model`, `--base-url`, `--commit`,
 |----------|------|-------------------|---------------|-------------------|
 | claude | cloud (Anthropic) | `ANTHROPIC_API_KEY` | `claude-haiku-4-5-20251001` | `--model` or config |
 | gemini | cloud (Google) | `GEMINI_API_KEY` | `gemini-2.5-flash` | `--model` or config |
+| openai-compatible | cloud (OpenAI & compatible) | `OPENAI_API_KEY` | `gpt-4o-mini` | `--model` or config |
 | ollama | local machine | none | `llama3.2` | `--model` or config |
 
 Example models: Claude — `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`.
@@ -46,6 +47,17 @@ pulled, e.g. `llama3.2`, `qwen2.5-coder`.
 Gemini and Claude run in the cloud — you only need an API key, nothing to
 install. Ollama runs locally; install it and `ollama pull <model>` first. Get a
 Gemini key at https://aistudio.google.com/apikey (generous free tier).
+
+`openai-compatible` speaks the OpenAI `/chat/completions` format, so one provider
+covers many services — point `baseUrl` at the one you want and set `apiKey` to
+its key:
+
+- OpenAI — `https://api.openai.com/v1` (`OPENAI_API_KEY`)
+- OpenRouter — `https://openrouter.ai/api/v1` (`process.env.OPENROUTER_API_KEY`)
+- Groq — `https://api.groq.com/openai/v1` (`process.env.GROQ_API_KEY`)
+- Together — `https://api.together.xyz/v1`
+- DeepSeek — `https://api.deepseek.com/v1`
+- LM Studio (local) — `http://localhost:1234/v1`
 
 ## Severity levels
 
