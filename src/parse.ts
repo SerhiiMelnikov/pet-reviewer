@@ -1,4 +1,5 @@
 import { IReview, isReview } from "./schema";
+import { ERRORS } from "./errors";
 
 // The model may wrap JSON in ```json ... ``` fences or add prose.
 // Extract just the object.
@@ -19,10 +20,10 @@ export function parseReview(rawText: string): IReview {
   try {
     data = JSON.parse(extracted);
   } catch {
-    throw new Error(`Model returned invalid JSON:\n${rawText}`);
+    throw ERRORS.parseInvalidJson(rawText);
   }
   if (!isReview(data)) {
-    throw new Error(`Model response does not match the review schema:\n${rawText}`);
+    throw ERRORS.parseSchemaMismatch(rawText);
   }
   return data;
 }

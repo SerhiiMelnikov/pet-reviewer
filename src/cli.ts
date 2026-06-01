@@ -11,17 +11,18 @@ import { createCommit } from "./commit";
 import { SEVERITIES, CATEGORIES, TSeverity, TCategory } from "./schema";
 import { loadConfig, resolveSettings } from "./config";
 import { initConfig } from "./init";
+import { ERRORS } from "./errors";
 
 function parseBlockLevel(value: string): TSeverity {
   if ((SEVERITIES as string[]).includes(value)) return value as TSeverity;
-  throw new Error(`Invalid --block-level "${value}". Use one of: ${SEVERITIES.join(", ")}`);
+  throw ERRORS.cliBlockLevel(value, SEVERITIES.join(", "));
 }
 
 function parseSkip(value: string): TCategory[] {
   const items = value.split(",").map((s) => s.trim()).filter(Boolean);
   for (const item of items) {
     if (!(CATEGORIES as string[]).includes(item)) {
-      throw new Error(`Invalid --skip category "${item}". Use any of: ${CATEGORIES.join(", ")}`);
+      throw ERRORS.cliSkipCategory(item, CATEGORIES.join(", "));
     }
   }
   return items as TCategory[];

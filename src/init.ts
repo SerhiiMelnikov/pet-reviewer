@@ -1,6 +1,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONFIG_FILENAME } from "./config";
+import { ERRORS } from "./errors";
 
 export const CONFIG_TEMPLATE = `export default {
   // Which provider to use by default: "claude" or "ollama".
@@ -37,7 +38,7 @@ export const CONFIG_TEMPLATE = `export default {
 export function initConfig(cwd: string = process.cwd(), force = false): string {
   const path = join(cwd, CONFIG_FILENAME);
   if (existsSync(path) && !force) {
-    throw new Error(`${CONFIG_FILENAME} already exists. Use --force to overwrite.`);
+    throw ERRORS.initConfigExists(CONFIG_FILENAME);
   }
   writeFileSync(path, CONFIG_TEMPLATE, "utf8");
   return path;
