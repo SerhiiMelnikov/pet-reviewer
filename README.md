@@ -81,12 +81,19 @@ project):
 
 ```js
 export default {
-  // Default provider: "claude" | "ollama" | "gemini".
+  // Default provider: "claude" | "ollama" | "gemini" | "openai-compatible".
   provider: "claude",
   providers: {
     claude: { model: "claude-haiku-4-5-20251001", apiKey: process.env.ANTHROPIC_API_KEY },
     gemini: { model: "gemini-2.5-flash", apiKey: process.env.GEMINI_API_KEY },
     ollama: { model: "llama3.2", baseUrl: "http://localhost:11434" },
+    // The hyphenated key must be quoted. Retarget baseUrl to any
+    // OpenAI-compatible service (OpenRouter, Groq, Together, DeepSeek, ...).
+    "openai-compatible": {
+      model: "gpt-4o-mini",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: process.env.OPENAI_API_KEY,
+    },
   },
   commit: {
     blockLevel: "warning", // severity that blocks the commit
@@ -103,8 +110,12 @@ What each setting affects:
 - **`provider`** — which model service runs the review.
 - **`providers.<name>.model`** — the model used for that provider.
 - **`providers.<name>.apiKey`** — API key (cloud providers). Prefer reading from
-  the environment; never hard-code secrets.
-- **`providers.ollama.baseUrl`** — where your local Ollama server listens.
+  the environment; never hard-code secrets. For `openai-compatible`, use the key
+  of the service `baseUrl` points at (e.g. `process.env.GROQ_API_KEY`).
+- **`providers.<name>.baseUrl`** — where requests are sent: the local Ollama
+  server, or — for `openai-compatible` — any OpenAI-compatible endpoint
+  (OpenRouter, Groq, Together, DeepSeek, LM Studio, …). See the
+  [Providers & models](#providers--models) table for example URLs.
 - **`commit.blockLevel`** — minimum severity that blocks `--commit`.
 - **`commit.skip`** — categories that never block (still shown in output).
 - **`rules`** — your own review criteria; violations become `custom` findings
