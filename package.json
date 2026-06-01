@@ -1,6 +1,6 @@
 {
   "name": "pet-reviewer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI code reviewer CLI: reviews your git diff with Claude or Ollama, enforces custom rules, and gates commits on the result.",
   "keywords": [
     "code-review",
