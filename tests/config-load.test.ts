@@ -71,6 +71,29 @@ describe("resolveSettings", () => {
     expect(resolveSettings({}, config, env).apiKey).toBe("config-key");
   });
 
+  it("resolves the gemini apiKey from the environment", () => {
+    const s = resolveSettings({ provider: "gemini" }, {}, { GEMINI_API_KEY: "g-env" });
+    expect(s.provider).toBe("gemini");
+    expect(s.apiKey).toBe("g-env");
+  });
+
+  it("prefers the config gemini apiKey over the environment", () => {
+    const config = { providers: { gemini: { apiKey: "g-config" } } };
+    const s = resolveSettings({ provider: "gemini" }, config, { GEMINI_API_KEY: "g-env" });
+    expect(s.apiKey).toBe("g-config");
+  });
+
+  it("picks the gemini model from config", () => {
+    const config = { providers: { gemini: { model: "gemini-2.5-pro" } } };
+    const s = resolveSettings({ provider: "gemini" }, config, {});
+    expect(s.model).toBe("gemini-2.5-pro");
+  });
+
+  it("resolves no apiKey for ollama", () => {
+    const s = resolveSettings({ provider: "ollama" }, {}, { ANTHROPIC_API_KEY: "a" });
+    expect(s.apiKey).toBeUndefined();
+  });
+
   it("carries rules from config (defaulting to [])", () => {
     expect(resolveSettings({}, {}, env).rules).toEqual([]);
     const rules = [{ text: "No any", severity: "warning" as const }];

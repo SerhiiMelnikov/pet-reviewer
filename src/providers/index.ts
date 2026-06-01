@@ -1,8 +1,10 @@
 import { IReviewProvider } from "./types";
 import { OllamaProvider } from "./ollama";
 import { ClaudeProvider } from "./claude";
+import { GeminiProvider } from "./gemini";
+import { ERRORS } from "../errors";
 
-export type TProviderName = "claude" | "ollama";
+export type TProviderName = "claude" | "ollama" | "gemini";
 
 export interface IProviderOptions {
   model?: string;
@@ -21,11 +23,24 @@ export function getProvider(
   if (normalized === "claude") {
     const key = env.ANTHROPIC_API_KEY;
     if (!key) {
-      throw new Error(
-        "ANTHROPIC_API_KEY is not set. Set it in your environment (e.g. a .env file) or in reviewer.config.js (providers.claude.apiKey). Get a key at https://console.anthropic.com",
+      throw ERRORS.missingApiKey(
+        "ANTHROPIC_API_KEY",
+        "providers.claude.apiKey",
+        "https://console.anthropic.com",
       );
     }
     return new ClaudeProvider(key, options.model || undefined);
   }
-  throw new Error(`Unknown provider: ${name}. Available: claude, ollama`);
+  if (normalized === "gemini") {
+    const key = env.GEMINI_API_KEY;
+    if (!key) {
+      throw ERRORS.missingApiKey(
+        "GEMINI_API_KEY",
+        "providers.gemini.apiKey",
+        "https://aistudio.google.com/apikey",
+      );
+    }
+    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined);
+  }
+  throw ERRORS.unknownProvider(name);
 }

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { TSeverity, TCategory, IRule, SEVERITIES, CATEGORIES } from "./schema";
+import { ERRORS } from "./errors";
 
 export const CONFIG_FILENAME = "reviewer.config.js";
 export const DEFAULT_PROVIDER = "claude";
@@ -18,6 +19,7 @@ export interface IReviewerConfig {
   providers?: {
     claude?: IProviderConfig;
     ollama?: IProviderConfig;
+    gemini?: IProviderConfig;
   };
   commit?: {
     blockLevel?: TSeverity;
@@ -38,33 +40,32 @@ export interface IResolvedSettings {
 
 export function validateConfig(raw: unknown): IReviewerConfig {
   if (raw === null || typeof raw !== "object") {
-    throw new Error(`${CONFIG_FILENAME} must export an object.`);
+    throw ERRORS.configNotObject(CONFIG_FILENAME);
   }
   const config = raw as IReviewerConfig;
 
-  if (config.provider !== undefined && config.provider !== "claude" && config.provider !== "ollama") {
-    throw new Error(
-      `Invalid "provider" in ${CONFIG_FILENAME}: "${config.provider}". Use "claude" or "ollama".`,
-    );
+  if (
+    config.provider !== undefined &&
+    config.provider !== "claude" &&
+    config.provider !== "ollama" &&
+    config.provider !== "gemini"
+  ) {
+    throw ERRORS.configProvider(CONFIG_FILENAME, String(config.provider));
   }
 
   const blockLevel = config.commit?.blockLevel;
   if (blockLevel !== undefined && !SEVERITIES.includes(blockLevel)) {
-    throw new Error(
-      `Invalid commit.blockLevel "${blockLevel}". Use one of: ${SEVERITIES.join(", ")}.`,
-    );
+    throw ERRORS.configBlockLevel(String(blockLevel), SEVERITIES.join(", "));
   }
 
   const skip = config.commit?.skip;
   if (skip !== undefined) {
     if (!Array.isArray(skip)) {
-      throw new Error(`commit.skip in ${CONFIG_FILENAME} must be an array.`);
+      throw ERRORS.configSkipNotArray(CONFIG_FILENAME);
     }
     for (const cat of skip) {
       if (!CATEGORIES.includes(cat as TCategory)) {
-        throw new Error(
-          `Invalid commit.skip category "${cat}". Use any of: ${CATEGORIES.join(", ")}.`,
-        );
+        throw ERRORS.configSkipCategory(String(cat), CATEGORIES.join(", "));
       }
     }
   }
@@ -72,19 +73,17 @@ export function validateConfig(raw: unknown): IReviewerConfig {
   const rules = config.rules;
   if (rules !== undefined) {
     if (!Array.isArray(rules)) {
-      throw new Error(`rules in ${CONFIG_FILENAME} must be an array.`);
+      throw ERRORS.configRulesNotArray(CONFIG_FILENAME);
     }
     rules.forEach((rule, i) => {
       if (rule === null || typeof rule !== "object" || typeof rule.text !== "string") {
-        throw new Error(`rules[${i}] must be an object with a string "text".`);
+        throw ERRORS.configRuleShape(i);
       }
       if (rule.text.length > 500) {
-        throw new Error(`rules[${i}].text exceeds the 500-character limit.`);
+        throw ERRORS.configRuleTextLength(i);
       }
       if (!SEVERITIES.includes(rule.severity)) {
-        throw new Error(
-          `Invalid rules[${i}].severity "${rule.severity}". Use one of: ${SEVERITIES.join(", ")}.`,
-        );
+        throw ERRORS.configRuleSeverity(i, String(rule.severity), SEVERITIES.join(", "));
       }
     });
   }
@@ -103,7 +102,7 @@ export async function loadConfig(
   try {
     mod = await import(pathToFileURL(path).href);
   } catch (err) {
-    throw new Error(`Failed to load ${CONFIG_FILENAME}: ${(err as Error).message}`);
+    throw ERRORS.configLoadFailed(CONFIG_FILENAME, (err as Error).message);
   }
   return validateConfig(mod.default ?? mod);
 }
@@ -122,14 +121,26 @@ export function resolveSettings(
   env: Record<string, string | undefined>,
 ): IResolvedSettings {
   const provider = cli.provider ?? config.provider ?? DEFAULT_PROVIDER;
+
   const providerConf =
-    provider === "ollama" ? config.providers?.ollama : config.providers?.claude;
+    provider === "ollama"
+      ? config.providers?.ollama
+      : provider === "gemini"
+        ? config.providers?.gemini
+        : config.providers?.claude;
+
+  let apiKey: string | undefined;
+  if (provider === "claude") {
+    apiKey = config.providers?.claude?.apiKey ?? env.ANTHROPIC_API_KEY;
+  } else if (provider === "gemini") {
+    apiKey = config.providers?.gemini?.apiKey ?? env.GEMINI_API_KEY;
+  }
 
   return {
     provider,
     model: cli.model ?? providerConf?.model,
     baseUrl: cli.baseUrl ?? providerConf?.baseUrl,
-    apiKey: config.providers?.claude?.apiKey ?? env.ANTHROPIC_API_KEY,
+    apiKey,
     blockLevel: cli.blockLevel ?? config.commit?.blockLevel ?? DEFAULT_BLOCK_LEVEL,
     skip: cli.skip ?? config.commit?.skip ?? [],
     rules: config.rules ?? [],

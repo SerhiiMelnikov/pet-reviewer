@@ -1,8 +1,8 @@
 # pet-reviewer
 
-AI code reviewer CLI. It reads your `git diff`, asks an LLM (Claude or a local
-Ollama model) to review it, prints structured findings, and can gate a commit
-on the result.
+AI code reviewer CLI. It reads your `git diff`, asks an LLM (Claude, Gemini, or a
+local Ollama model) to review it, prints structured findings, and can gate a
+commit on the result.
 
 ## Install
 
@@ -11,24 +11,56 @@ npm install -D pet-reviewer
 npx pet-reviewer init      # creates reviewer.config.js
 ```
 
-Set your Anthropic key in the environment (e.g. via a `.env` file):
+Set your API key in the environment (e.g. via a `.env` file):
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=sk-ant-...     # for Claude
+GEMINI_API_KEY=...               # for Gemini
 ```
 
 ## Usage
 
-Stage your changes first (`git add ...`) — the reviewer reads `git diff HEAD`.
+The reviewer reads `git diff HEAD` (staged + unstaged changes).
 
 ```bash
 npx pet-reviewer                 # review only
 npx pet-reviewer --commit        # review, then commit if nothing blocks
-npx pet-reviewer --provider ollama
+npx pet-reviewer --provider gemini
 ```
 
 Flags (override config): `--provider`, `--model`, `--base-url`, `--commit`,
 `--block-level <critical|warning|nit>`, `--skip <categories>`.
+
+## Providers & models
+
+| Provider | Runs | API key (env var) | Default model | Pick another with |
+|----------|------|-------------------|---------------|-------------------|
+| claude | cloud (Anthropic) | `ANTHROPIC_API_KEY` | `claude-haiku-4-5-20251001` | `--model` or config |
+| gemini | cloud (Google) | `GEMINI_API_KEY` | `gemini-2.5-flash` | `--model` or config |
+| ollama | local machine | none | `llama3.2` | `--model` or config |
+
+Example models: Claude — `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`.
+Gemini — `gemini-2.5-flash`, `gemini-2.5-pro`. Ollama — any model you have
+pulled, e.g. `llama3.2`, `qwen2.5-coder`.
+
+Gemini and Claude run in the cloud — you only need an API key, nothing to
+install. Ollama runs locally; install it and `ollama pull <model>` first. Get a
+Gemini key at https://aistudio.google.com/apikey (generous free tier).
+
+## Severity levels
+
+Every finding has one of three severities:
+
+| Severity | Meaning |
+|----------|---------|
+| `critical` | Must fix — bugs, security holes, data loss. |
+| `warning` | Should fix — likely problems or bad practice. |
+| `nit` | Minor — style, naming, optional polish. |
+
+Severities drive the commit gate. With `--commit`, a finding **blocks** the
+commit when its severity is at or above `commit.blockLevel` (rank order:
+`nit` < `warning` < `critical`). Categories listed in `commit.skip` never block,
+even at `critical`.
 
 ## Configuration
 
@@ -37,32 +69,40 @@ project):
 
 ```js
 export default {
+  // Default provider: "claude" | "ollama" | "gemini".
   provider: "claude",
   providers: {
-    claude: {
-      model: "claude-haiku-4-5-20251001",
-      apiKey: process.env.ANTHROPIC_API_KEY, // read from the environment
-    },
-    ollama: {
-      model: "llama3.2",
-      baseUrl: "http://localhost:11434",
-    },
+    claude: { model: "claude-haiku-4-5-20251001", apiKey: process.env.ANTHROPIC_API_KEY },
+    gemini: { model: "gemini-2.5-flash", apiKey: process.env.GEMINI_API_KEY },
+    ollama: { model: "llama3.2", baseUrl: "http://localhost:11434" },
   },
   commit: {
-    blockLevel: "warning",   // severity that blocks the commit
-    skip: ["style"],         // categories that never block (still shown)
+    blockLevel: "warning", // severity that blocks the commit
+    skip: ["style"],       // categories that never block (still shown)
   },
   rules: [
-    // Violations are reported under the "custom" category, with this severity.
     { text: "No console.log in production code", severity: "warning" },
   ],
 };
 ```
 
-Precedence: **CLI flag > config value > built-in default.**
+What each setting affects:
 
-The API key is resolved from `providers.claude.apiKey` first, then from
-`ANTHROPIC_API_KEY`. Keep secrets in the environment — do not hard-code them.
+- **`provider`** — which model service runs the review.
+- **`providers.<name>.model`** — the model used for that provider.
+- **`providers.<name>.apiKey`** — API key (cloud providers). Prefer reading from
+  the environment; never hard-code secrets.
+- **`providers.ollama.baseUrl`** — where your local Ollama server listens.
+- **`commit.blockLevel`** — minimum severity that blocks `--commit`.
+- **`commit.skip`** — categories that never block (still shown in output).
+- **`rules`** — your own review criteria; violations become `custom` findings
+  with the severity you set, so they participate in the gate.
+
+### Precedence
+
+**CLI flag > config value > built-in default.** For example,
+`--model gemini-2.5-pro` overrides `providers.gemini.model`, which overrides the
+built-in default `gemini-2.5-flash`.
 
 ### Custom rules & prompt safety
 

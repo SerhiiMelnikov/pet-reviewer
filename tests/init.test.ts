@@ -17,6 +17,13 @@ describe("initConfig", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  it("includes a gemini provider block in the template", () => {
+    const dir = tempDir();
+    const path = initConfig(dir);
+    expect(readFileSync(path, "utf8")).toContain("gemini");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   it("refuses to overwrite an existing file without force", () => {
     const dir = tempDir();
     writeFileSync(join(dir, "reviewer.config.js"), "old");

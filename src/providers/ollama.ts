@@ -1,4 +1,5 @@
 import { IReviewProvider } from "./types";
+import { ERRORS } from "../errors";
 
 interface IOllamaResponse {
   response: string;
@@ -31,20 +32,26 @@ export class OllamaProvider implements IReviewProvider {
       });
     } catch (err) {
       if ((err as Error)?.name === "AbortError") {
-        throw new Error(
-          `Ollama request timed out after ${this.timeoutMs / 1000}s. The model may be loading or slow on this machine. Warm it up with \`ollama run ${this.model}\` or increase the timeout.`,
+        throw ERRORS.providerTimeout(
+          "Ollama",
+          this.timeoutMs / 1000,
+          `Warm it up with \`ollama run ${this.model}\` or increase the timeout.`,
         );
       }
-      throw new Error(
-        `Could not connect to Ollama at ${this.baseUrl}. Is the server running (\`ollama serve\`)?`,
+      throw ERRORS.providerUnreachable(
+        "Ollama",
+        this.baseUrl,
+        "Is the server running (`ollama serve`)?",
       );
     } finally {
       clearTimeout(timer);
     }
 
     if (!res.ok) {
-      throw new Error(
-        `Ollama returned an error ${res.status}. Is the model \`${this.model}\` pulled (\`ollama pull ${this.model}\`)?`,
+      throw ERRORS.providerHttp(
+        "Ollama",
+        res.status,
+        `Is the model \`${this.model}\` pulled (\`ollama pull ${this.model}\`)?`,
       );
     }
     const data = (await res.json()) as IOllamaResponse;
