@@ -4,7 +4,7 @@ import { CONFIG_FILENAME } from "./config";
 import { ERRORS } from "./errors";
 
 export const CONFIG_TEMPLATE = `export default {
-  // Which provider to use by default: "claude" or "ollama".
+  // Which provider to use by default: "claude", "ollama", or "gemini".
   provider: "claude",
 
   providers: {
@@ -16,6 +16,11 @@ export const CONFIG_TEMPLATE = `export default {
     ollama: {
       model: "llama3.2",
       baseUrl: "http://localhost:11434",
+    },
+    gemini: {
+      model: "gemini-2.5-flash",
+      // The key is read from the environment; never hard-code it here.
+      apiKey: process.env.GEMINI_API_KEY,
     },
   },
 
