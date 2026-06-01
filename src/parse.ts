@@ -1,4 +1,5 @@
-import { IReview, isReview } from "./schema";
+import { isReview } from "./schema";
+import { normalizeReview, INormalizeResult } from "./normalize";
 import { ERRORS } from "./errors";
 
 // The model may wrap JSON in ```json ... ``` fences or add prose.
@@ -14,7 +15,7 @@ export function extractJson(rawText: string): string {
   return rawText.trim();
 }
 
-export function parseReview(rawText: string): IReview {
+export function parseReview(rawText: string): INormalizeResult {
   const extracted = extractJson(rawText);
   let data: unknown;
   try {
@@ -22,8 +23,9 @@ export function parseReview(rawText: string): IReview {
   } catch {
     throw ERRORS.parseInvalidJson(rawText);
   }
-  if (!isReview(data)) {
+  const result = normalizeReview(data);
+  if (result === null || !isReview(result.review)) {
     throw ERRORS.parseSchemaMismatch(rawText);
   }
-  return data;
+  return result;
 }
