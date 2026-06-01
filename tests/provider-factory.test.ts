@@ -3,6 +3,7 @@ import { getProvider } from "../src/providers";
 import { OllamaProvider } from "../src/providers/ollama";
 import { ClaudeProvider } from "../src/providers/claude";
 import { GeminiProvider } from "../src/providers/gemini";
+import { OpenAICompatibleProvider } from "../src/providers/openai";
 
 describe("getProvider", () => {
   it("returns OllamaProvider for 'ollama'", () => {
@@ -43,6 +44,24 @@ describe("getProvider", () => {
       model: "gemini-2.5-pro",
     }) as GeminiProvider;
     expect(p.model).toBe("gemini-2.5-pro");
+  });
+
+  it("returns OpenAICompatibleProvider when the key is present", () => {
+    const provider = getProvider("openai-compatible", { OPENAI_API_KEY: "abc" });
+    expect(provider).toBeInstanceOf(OpenAICompatibleProvider);
+  });
+
+  it("throws a clear error for 'openai-compatible' without a key", () => {
+    expect(() => getProvider("openai-compatible", {})).toThrow(/OPENAI_API_KEY/);
+  });
+
+  it("passes model and baseUrl through to OpenAICompatibleProvider", () => {
+    const p = getProvider("openai-compatible", { OPENAI_API_KEY: "k" }, {
+      model: "llama-3.3-70b-versatile",
+      baseUrl: "https://api.groq.com/openai/v1",
+    }) as OpenAICompatibleProvider;
+    expect(p.model).toBe("llama-3.3-70b-versatile");
+    expect(p.baseUrl).toBe("https://api.groq.com/openai/v1");
   });
 
   it("passes model and baseUrl through to OllamaProvider", () => {

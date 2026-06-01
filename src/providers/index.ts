@@ -2,9 +2,10 @@ import { IReviewProvider } from "./types";
 import { OllamaProvider } from "./ollama";
 import { ClaudeProvider } from "./claude";
 import { GeminiProvider } from "./gemini";
+import { OpenAICompatibleProvider } from "./openai";
 import { ERRORS } from "../errors";
 
-export type TProviderName = "claude" | "ollama" | "gemini";
+export type TProviderName = "claude" | "ollama" | "gemini" | "openai-compatible";
 
 export interface IProviderOptions {
   model?: string;
@@ -41,6 +42,21 @@ export function getProvider(
       );
     }
     return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined);
+  }
+  if (normalized === "openai-compatible") {
+    const key = env.OPENAI_API_KEY;
+    if (!key) {
+      throw ERRORS.missingApiKey(
+        "OPENAI_API_KEY",
+        'providers["openai-compatible"].apiKey',
+        "https://platform.openai.com/api-keys",
+      );
+    }
+    return new OpenAICompatibleProvider(
+      key,
+      options.model || undefined,
+      options.baseUrl || undefined,
+    );
   }
   throw ERRORS.unknownProvider(name);
 }
