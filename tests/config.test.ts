@@ -24,6 +24,11 @@ describe("validateConfig", () => {
     expect(() => validateConfig({ provider: "gpt" })).toThrow(/provider/);
   });
 
+  it("accepts provider 'gemini'", () => {
+    const cfg = { provider: "gemini", providers: { gemini: { model: "gemini-2.5-flash" } } };
+    expect(validateConfig(cfg)).toEqual(cfg);
+  });
+
   it("throws on an invalid blockLevel", () => {
     expect(() => validateConfig({ commit: { blockLevel: "loud" } })).toThrow(/blockLevel/);
   });

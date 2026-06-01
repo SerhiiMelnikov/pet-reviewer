@@ -19,6 +19,7 @@ export interface IReviewerConfig {
   providers?: {
     claude?: IProviderConfig;
     ollama?: IProviderConfig;
+    gemini?: IProviderConfig;
   };
   commit?: {
     blockLevel?: TSeverity;
@@ -120,14 +121,26 @@ export function resolveSettings(
   env: Record<string, string | undefined>,
 ): IResolvedSettings {
   const provider = cli.provider ?? config.provider ?? DEFAULT_PROVIDER;
+
   const providerConf =
-    provider === "ollama" ? config.providers?.ollama : config.providers?.claude;
+    provider === "ollama"
+      ? config.providers?.ollama
+      : provider === "gemini"
+        ? config.providers?.gemini
+        : config.providers?.claude;
+
+  let apiKey: string | undefined;
+  if (provider === "claude") {
+    apiKey = config.providers?.claude?.apiKey ?? env.ANTHROPIC_API_KEY;
+  } else if (provider === "gemini") {
+    apiKey = config.providers?.gemini?.apiKey ?? env.GEMINI_API_KEY;
+  }
 
   return {
     provider,
     model: cli.model ?? providerConf?.model,
     baseUrl: cli.baseUrl ?? providerConf?.baseUrl,
-    apiKey: config.providers?.claude?.apiKey ?? env.ANTHROPIC_API_KEY,
+    apiKey,
     blockLevel: cli.blockLevel ?? config.commit?.blockLevel ?? DEFAULT_BLOCK_LEVEL,
     skip: cli.skip ?? config.commit?.skip ?? [],
     rules: config.rules ?? [],
