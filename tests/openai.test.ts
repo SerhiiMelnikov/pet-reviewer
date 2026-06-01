@@ -31,4 +31,34 @@ describe("OpenAICompatibleProvider", () => {
     expect(body.messages[0].content).toBe("MY_PROMPT");
     expect(body.response_format).toBeUndefined();
   });
+
+  it("throws a clear error on a non-ok response", async () => {
+    const fetchFn = fakeFetch({}, false, 401);
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    await expect(provider.review("x")).rejects.toThrow(/401/);
+  });
+
+  it("throws a friendly error when the connection fails", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockRejectedValue(new Error("fetch failed")) as unknown as typeof fetch;
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    await expect(provider.review("x")).rejects.toThrow(/reach OpenAI/);
+  });
+
+  it("throws a timeout error when the request is aborted", async () => {
+    const abortErr = new Error("aborted");
+    abortErr.name = "AbortError";
+    const fetchFn = vi
+      .fn()
+      .mockRejectedValue(abortErr) as unknown as typeof fetch;
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    await expect(provider.review("x")).rejects.toThrow(/timed out/);
+  });
+
+  it("throws when the response has no choices", async () => {
+    const fetchFn = fakeFetch({ choices: [] });
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    await expect(provider.review("x")).rejects.toThrow(/no content/i);
+  });
 });
