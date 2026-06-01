@@ -118,11 +118,17 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   }
 
   let review;
+  let dropped = 0;
   try {
-    review = parseReview(rawText);
+    ({ review, dropped } = parseReview(rawText));
   } catch (err) {
     console.error(pc.red(`Failed to parse the model response: ${(err as Error).message}`));
     process.exit(1);
+  }
+  if (dropped > 0) {
+    console.error(
+      pc.yellow(`Note: dropped ${dropped} malformed finding(s) from the model response.`),
+    );
   }
   console.log("\n" + renderFindings(review.findings));
 

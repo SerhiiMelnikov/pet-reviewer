@@ -34,6 +34,12 @@ Respond with ONLY a JSON object, with no text before or after, of this shape:
   - "message": string — what exactly is wrong
   - "suggestion": string | null — how to fix it (or null)
 
+IMPORTANT: "severity" and "category" are different fields. "severity" measures
+impact and MUST be exactly one of: critical, warning, nit.
+Never put a category value (like "bug" or "security") into "severity".
+The same issue can be any severity depending on impact — a bug may be
+"critical", "warning", or "nit".
+
 "commitMessage" is a Conventional Commits / Commitizen message in English that
 summarizes the changes (e.g. "feat(parser): add JSON extraction").
 
