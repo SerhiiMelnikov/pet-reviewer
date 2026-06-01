@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getProvider } from "../src/providers";
 import { OllamaProvider } from "../src/providers/ollama";
 import { ClaudeProvider } from "../src/providers/claude";
+import { GeminiProvider } from "../src/providers/gemini";
 
 describe("getProvider", () => {
   it("returns OllamaProvider for 'ollama'", () => {
@@ -26,6 +27,22 @@ describe("getProvider", () => {
 
   it("throws for an unknown provider", () => {
     expect(() => getProvider("gpt", {})).toThrow();
+  });
+
+  it("returns GeminiProvider when the key is present", () => {
+    const provider = getProvider("gemini", { GEMINI_API_KEY: "abc" });
+    expect(provider).toBeInstanceOf(GeminiProvider);
+  });
+
+  it("throws a clear error for 'gemini' without a key", () => {
+    expect(() => getProvider("gemini", {})).toThrow(/GEMINI_API_KEY/);
+  });
+
+  it("passes model through to GeminiProvider", () => {
+    const p = getProvider("gemini", { GEMINI_API_KEY: "k" }, {
+      model: "gemini-2.5-pro",
+    }) as GeminiProvider;
+    expect(p.model).toBe("gemini-2.5-pro");
   });
 
   it("passes model and baseUrl through to OllamaProvider", () => {

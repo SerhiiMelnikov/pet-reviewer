@@ -1,9 +1,10 @@
 import { IReviewProvider } from "./types";
 import { OllamaProvider } from "./ollama";
 import { ClaudeProvider } from "./claude";
+import { GeminiProvider } from "./gemini";
 import { ERRORS } from "../errors";
 
-export type TProviderName = "claude" | "ollama";
+export type TProviderName = "claude" | "ollama" | "gemini";
 
 export interface IProviderOptions {
   model?: string;
@@ -29,6 +30,17 @@ export function getProvider(
       );
     }
     return new ClaudeProvider(key, options.model || undefined);
+  }
+  if (normalized === "gemini") {
+    const key = env.GEMINI_API_KEY;
+    if (!key) {
+      throw ERRORS.missingApiKey(
+        "GEMINI_API_KEY",
+        "providers.gemini.apiKey",
+        "https://aistudio.google.com/apikey",
+      );
+    }
+    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined);
   }
   throw ERRORS.unknownProvider(name);
 }
