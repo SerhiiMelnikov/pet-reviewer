@@ -29,12 +29,16 @@ function parseSkip(value: string): TCategory[] {
 }
 
 // Maps the resolved API key to the env-var name the chosen provider expects.
+const PROVIDER_ENV_VAR: Record<string, string> = {
+  gemini: "GEMINI_API_KEY",
+  "openai-compatible": "OPENAI_API_KEY",
+};
+
 export function providerEnv(
   provider: string,
   apiKey?: string,
 ): Record<string, string | undefined> {
-  if (provider === "gemini") return { GEMINI_API_KEY: apiKey };
-  return { ANTHROPIC_API_KEY: apiKey };
+  return { [PROVIDER_ENV_VAR[provider] ?? "ANTHROPIC_API_KEY"]: apiKey };
 }
 
 interface IReviewOpts {

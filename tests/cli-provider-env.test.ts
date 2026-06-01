@@ -13,4 +13,8 @@ describe("providerEnv", () => {
   it("defaults a keyless provider to the ANTHROPIC_API_KEY slot", () => {
     expect(providerEnv("ollama", undefined)).toEqual({ ANTHROPIC_API_KEY: undefined });
   });
+
+  it("maps the openai-compatible key to OPENAI_API_KEY", () => {
+    expect(providerEnv("openai-compatible", "o-key")).toEqual({ OPENAI_API_KEY: "o-key" });
+  });
 });
