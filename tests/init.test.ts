@@ -24,6 +24,13 @@ describe("initConfig", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  it("includes an openai-compatible provider block in the template", () => {
+    const dir = tempDir();
+    const path = initConfig(dir);
+    expect(readFileSync(path, "utf8")).toContain("openai-compatible");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   it("refuses to overwrite an existing file without force", () => {
     const dir = tempDir();
     writeFileSync(join(dir, "reviewer.config.js"), "old");
