@@ -39,4 +39,10 @@ describe("buildPrompt", () => {
   it("instructs to always respond in English", () => {
     expect(buildPrompt("x")).toContain("respond in English");
   });
+
+  it("clarifies that severity must not hold a category value", () => {
+    const prompt = buildPrompt("diff");
+    expect(prompt).toContain("Never put a category value");
+    expect(prompt).toContain("critical, warning, nit");
+  });
 });
