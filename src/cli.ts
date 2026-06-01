@@ -28,6 +28,15 @@ function parseSkip(value: string): TCategory[] {
   return items as TCategory[];
 }
 
+// Maps the resolved API key to the env-var name the chosen provider expects.
+export function providerEnv(
+  provider: string,
+  apiKey?: string,
+): Record<string, string | undefined> {
+  if (provider === "gemini") return { GEMINI_API_KEY: apiKey };
+  return { ANTHROPIC_API_KEY: apiKey };
+}
+
 interface IReviewOpts {
   provider?: string;
   commit: boolean;
@@ -87,7 +96,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   try {
     provider = getProvider(
       settings.provider,
-      { ANTHROPIC_API_KEY: settings.apiKey },
+      providerEnv(settings.provider, settings.apiKey),
       { model: settings.model, baseUrl: settings.baseUrl },
     );
   } catch (err) {
