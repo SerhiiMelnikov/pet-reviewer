@@ -29,6 +29,14 @@ describe("validateConfig", () => {
     expect(validateConfig(cfg)).toEqual(cfg);
   });
 
+  it("accepts provider 'openai-compatible'", () => {
+    const cfg = {
+      provider: "openai-compatible",
+      providers: { "openai-compatible": { model: "gpt-4o-mini" } },
+    };
+    expect(validateConfig(cfg)).toEqual(cfg);
+  });
+
   it("throws on an invalid blockLevel", () => {
     expect(() => validateConfig({ commit: { blockLevel: "loud" } })).toThrow(/blockLevel/);
   });

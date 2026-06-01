@@ -20,6 +20,7 @@ export interface IReviewerConfig {
     claude?: IProviderConfig;
     ollama?: IProviderConfig;
     gemini?: IProviderConfig;
+    "openai-compatible"?: IProviderConfig;
   };
   commit?: {
     blockLevel?: TSeverity;
@@ -48,7 +49,8 @@ export function validateConfig(raw: unknown): IReviewerConfig {
     config.provider !== undefined &&
     config.provider !== "claude" &&
     config.provider !== "ollama" &&
-    config.provider !== "gemini"
+    config.provider !== "gemini" &&
+    config.provider !== "openai-compatible"
   ) {
     throw ERRORS.configProvider(CONFIG_FILENAME, String(config.provider));
   }
@@ -127,13 +129,17 @@ export function resolveSettings(
       ? config.providers?.ollama
       : provider === "gemini"
         ? config.providers?.gemini
-        : config.providers?.claude;
+        : provider === "openai-compatible"
+          ? config.providers?.["openai-compatible"]
+          : config.providers?.claude;
 
   let apiKey: string | undefined;
   if (provider === "claude") {
     apiKey = config.providers?.claude?.apiKey ?? env.ANTHROPIC_API_KEY;
   } else if (provider === "gemini") {
     apiKey = config.providers?.gemini?.apiKey ?? env.GEMINI_API_KEY;
+  } else if (provider === "openai-compatible") {
+    apiKey = config.providers?.["openai-compatible"]?.apiKey ?? env.OPENAI_API_KEY;
   }
 
   return {

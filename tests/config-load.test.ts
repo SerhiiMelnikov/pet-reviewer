@@ -94,6 +94,35 @@ describe("resolveSettings", () => {
     expect(s.apiKey).toBeUndefined();
   });
 
+  it("resolves the openai-compatible apiKey from the environment", () => {
+    const s = resolveSettings(
+      { provider: "openai-compatible" },
+      {},
+      { OPENAI_API_KEY: "o-env" },
+    );
+    expect(s.provider).toBe("openai-compatible");
+    expect(s.apiKey).toBe("o-env");
+  });
+
+  it("prefers the config openai-compatible apiKey over the environment", () => {
+    const config = { providers: { "openai-compatible": { apiKey: "o-config" } } };
+    const s = resolveSettings(
+      { provider: "openai-compatible" },
+      config,
+      { OPENAI_API_KEY: "o-env" },
+    );
+    expect(s.apiKey).toBe("o-config");
+  });
+
+  it("picks the openai-compatible model and baseUrl from config", () => {
+    const config = {
+      providers: { "openai-compatible": { model: "mixtral", baseUrl: "http://x:1/v1" } },
+    };
+    const s = resolveSettings({ provider: "openai-compatible" }, config, {});
+    expect(s.model).toBe("mixtral");
+    expect(s.baseUrl).toBe("http://x:1/v1");
+  });
+
   it("carries rules from config (defaulting to [])", () => {
     expect(resolveSettings({}, {}, env).rules).toEqual([]);
     const rules = [{ text: "No any", severity: "warning" as const }];
