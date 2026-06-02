@@ -66,16 +66,28 @@ export function getAgentProvider(
   env: Record<string, string | undefined> = process.env,
   options: IProviderOptions = {},
 ): IAgentProvider {
-  if (name.toLowerCase() !== "claude") {
-    throw ERRORS.agentClaudeOnly();
+  const normalized = name.toLowerCase();
+  if (normalized === "claude") {
+    const key = env.ANTHROPIC_API_KEY;
+    if (!key) {
+      throw ERRORS.missingApiKey(
+        "ANTHROPIC_API_KEY",
+        "providers.claude.apiKey",
+        "https://console.anthropic.com",
+      );
+    }
+    return new ClaudeProvider(key, options.model || undefined);
   }
-  const key = env.ANTHROPIC_API_KEY;
-  if (!key) {
-    throw ERRORS.missingApiKey(
-      "ANTHROPIC_API_KEY",
-      "providers.claude.apiKey",
-      "https://console.anthropic.com",
-    );
+  if (normalized === "gemini") {
+    const key = env.GEMINI_API_KEY;
+    if (!key) {
+      throw ERRORS.missingApiKey(
+        "GEMINI_API_KEY",
+        "providers.gemini.apiKey",
+        "https://aistudio.google.com/apikey",
+      );
+    }
+    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined);
   }
-  return new ClaudeProvider(key, options.model || undefined);
+  throw ERRORS.agentUnsupported(name);
 }

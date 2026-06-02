@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPrompt } from "../src/prompt";
+import { buildPrompt, buildAgentPrompt } from "../src/prompt";
 import { IRule } from "../src/schema";
 
 describe("buildPrompt", () => {
@@ -44,5 +44,11 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt("diff");
     expect(prompt).toContain("Never put a category value");
     expect(prompt).toContain("critical, warning, nit");
+  });
+});
+
+describe("buildAgentPrompt step budget", () => {
+  it("nudges the agent to submit early due to a limited step budget", () => {
+    expect(buildAgentPrompt("diff")).toContain("limited step budget");
   });
 });

@@ -21,7 +21,7 @@ export enum EErrorCode {
   CliBlockLevel = "6.1",
   CliSkipCategory = "6.2",
   CliMaxSteps = "6.3",
-  AgentClaudeOnly = "7.1",
+  AgentUnsupported = "7.1",
   AgentNoSubmit = "7.2",
 }
 
@@ -132,10 +132,10 @@ export const ERRORS = {
     new ReviewerError(EErrorCode.CliMaxSteps, `Invalid --max-steps "${value}". Use a positive integer.`),
 
   // 7.x — agent mode
-  agentClaudeOnly: () =>
+  agentUnsupported: (provider: string) =>
     new ReviewerError(
-      EErrorCode.AgentClaudeOnly,
-      "Agent mode currently supports only the Claude provider. Use --provider claude (the default).",
+      EErrorCode.AgentUnsupported,
+      `Agent mode supports only the claude and gemini providers. Got "${provider}". Use --provider claude or gemini.`,
     ),
   agentNoSubmit: (steps: number) =>
     new ReviewerError(

@@ -119,18 +119,23 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       agentProvider = getAgentProvider(
         settings.provider,
         providerEnv(settings.provider, settings.apiKey),
-        { model: settings.model },
+        { model: settings.model, baseUrl: settings.baseUrl },
       );
     } catch (err) {
       console.error(pc.red((err as Error).message));
       process.exit(1);
     }
-    console.log(pc.dim(`Reviewing with the Claude agent (max ${maxSteps} steps)...`));
+    console.log(pc.dim(`Reviewing with the ${settings.provider} agent (max ${maxSteps} steps)...`));
     try {
       result = await runAgent(diff, agentProvider, { maxSteps, root: getRepoRoot() }, settings.rules);
     } catch (err) {
       console.error(pc.red(`Agent failed: ${(err as Error).message}`));
       process.exit(1);
+    }
+    if (result.truncated) {
+      console.error(
+        pc.yellow(`⚠ Agent ran out of steps (${maxSteps}); this review may be incomplete.`),
+      );
     }
   } else {
     let provider;
