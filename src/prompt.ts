@@ -58,6 +58,8 @@ export function buildAgentPrompt(diff: string, rules: IRule[] = []): string {
 You have read-only tools to gather context beyond the diff: read_file, grep, list_dir.
 Use them as needed (e.g. to read a changed function's callers or definitions), then call
 submit_review exactly once with your findings and a Conventional Commits commitMessage.
+You have a limited step budget, so call submit_review as soon as you have enough context;
+do not over-explore.
 
 Each finding has: file, line (number or null), severity (critical|warning|nit),
 category (bug|security|performance|readability|style|custom), message, suggestion (or null).

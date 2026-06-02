@@ -10,6 +10,21 @@ function scripted(turns: IAgentTurn[]): IAgentProvider {
   return { async chat() { return turns[i++] ?? { toolCalls: [] }; } };
 }
 
+function recording(turns: IAgentTurn[]): {
+  provider: IAgentProvider;
+  calls: string[][];
+} {
+  const calls: string[][] = [];
+  let i = 0;
+  const provider: IAgentProvider = {
+    async chat(_messages, tools) {
+      calls.push(tools.map((t) => t.name));
+      return turns[i++] ?? { toolCalls: [] };
+    },
+  };
+  return { provider, calls };
+}
+
 const validReview = {
   findings: [
     { file: "a.ts", line: 1, severity: "nit", category: "style", message: "m", suggestion: null },
@@ -50,6 +65,29 @@ describe("runAgent", () => {
     ]);
     await expect(
       runAgent("diff", provider, { maxSteps: 2, root: process.cwd() }),
+    ).rejects.toThrow(/did not submit/i);
+  });
+});
+
+describe("runAgent forced finalization", () => {
+  it("salvages a partial review via a forced submit when steps run out", async () => {
+    const { provider, calls } = recording([
+      { toolCalls: [{ id: "t1", name: "list_dir", input: { path: "." } }] },
+      { toolCalls: [{ id: "s1", name: "submit_review", input: validReview }] },
+    ]);
+    const result = await runAgent("diff", provider, { maxSteps: 1, root: process.cwd() });
+
+    expect(result.truncated).toBe(true);
+    expect(result.review.findings).toHaveLength(1);
+    expect(calls[calls.length - 1]).toEqual(["submit_review"]);
+  });
+
+  it("throws agentNoSubmit when even the forced submit does not submit", async () => {
+    const provider = scripted([
+      { toolCalls: [{ id: "t1", name: "list_dir", input: { path: "." } }] },
+    ]);
+    await expect(
+      runAgent("diff", provider, { maxSteps: 1, root: process.cwd() }),
     ).rejects.toThrow(/did not submit/i);
   });
 });

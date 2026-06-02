@@ -3,6 +3,7 @@ import { IFinding, IReview, TSeverity, TCategory, CATEGORIES } from "./schema";
 export interface INormalizeResult {
   review: IReview;
   dropped: number;
+  truncated?: boolean;
 }
 
 const SEVERITY_SYNONYMS: Record<string, TSeverity> = {
