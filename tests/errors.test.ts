@@ -23,4 +23,11 @@ describe("ERRORS", () => {
     expect(err.code).toBe(EErrorCode.MissingApiKey);
     expect(err.message).toContain("GEMINI_API_KEY");
   });
+
+  it("builds the agent error codes", () => {
+    expect(ERRORS.agentClaudeOnly().code).toBe(EErrorCode.AgentClaudeOnly);
+    expect(ERRORS.agentClaudeOnly().message).toContain("Claude");
+    expect(ERRORS.agentNoSubmit(12).message).toContain("12");
+    expect(ERRORS.cliMaxSteps("x").code).toBe(EErrorCode.CliMaxSteps);
+  });
 });

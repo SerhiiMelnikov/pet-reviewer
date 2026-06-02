@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getProvider } from "../src/providers";
+import { getProvider, getAgentProvider } from "../src/providers";
 import { OllamaProvider } from "../src/providers/ollama";
 import { ClaudeProvider } from "../src/providers/claude";
 import { GeminiProvider } from "../src/providers/gemini";
@@ -87,5 +87,20 @@ describe("getProvider", () => {
 
     const claude = getProvider("claude", { ANTHROPIC_API_KEY: "k" }) as ClaudeProvider;
     expect(claude.model).toBe("claude-haiku-4-5-20251001");
+  });
+});
+
+describe("getAgentProvider", () => {
+  it("returns a Claude-based agent provider when the key is present", () => {
+    const p = getAgentProvider("claude", { ANTHROPIC_API_KEY: "k" });
+    expect(p).toBeInstanceOf(ClaudeProvider);
+  });
+
+  it("throws for a non-claude provider", () => {
+    expect(() => getAgentProvider("gemini", { GEMINI_API_KEY: "k" })).toThrow(/Claude/);
+  });
+
+  it("throws when the Claude key is missing", () => {
+    expect(() => getAgentProvider("claude", {})).toThrow(/ANTHROPIC_API_KEY/);
   });
 });

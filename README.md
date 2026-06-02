@@ -29,7 +29,33 @@ npx pet-reviewer --provider gemini
 ```
 
 Flags (override config): `--provider`, `--model`, `--base-url`, `--commit`,
-`--block-level <critical|warning|nit>`, `--skip <categories>`.
+`--block-level <critical|warning|nit>`, `--skip <categories>`, `--agent`,
+`--max-steps <n>`.
+
+## Agent mode (experimental)
+
+By default the reviewer makes a single model call on your diff. With `--agent` it
+runs an **agentic loop** instead: the model uses read-only tools to gather context
+beyond the diff, then submits its findings.
+
+```bash
+npx pet-reviewer --agent
+npx pet-reviewer --agent --commit
+npx pet-reviewer --agent --max-steps 20
+```
+
+- **Provider:** Claude only for now (`--provider claude`, the default). Other
+  providers stay single-shot; Gemini/openai-compatible agent support is planned.
+  Any Claude model works — use `--model` for a stronger one.
+- **What it can do:** read any file in the repo (`read_file`), search the codebase
+  (`grep`), and browse directories (`list_dir`). It is strictly read-only — it
+  cannot write, run commands, or access anything outside the repository.
+- **How it works:** the model thinks → calls a tool → reads the result → repeats,
+  then calls `submit_review` to finish. The loop is bounded by `--max-steps`
+  (default 12).
+- **Trade-off:** deeper, cross-file reviews, but slower and costlier (several
+  model calls per run) and less deterministic. Use the default single-shot mode
+  for quick, cheap reviews; use `--agent` when depth matters.
 
 ## Providers & models
 

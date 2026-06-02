@@ -20,6 +20,9 @@ export enum EErrorCode {
   InitConfigExists = "5.1",
   CliBlockLevel = "6.1",
   CliSkipCategory = "6.2",
+  CliMaxSteps = "6.3",
+  AgentClaudeOnly = "7.1",
+  AgentNoSubmit = "7.2",
 }
 
 export class ReviewerError extends Error {
@@ -125,4 +128,18 @@ export const ERRORS = {
     new ReviewerError(EErrorCode.CliBlockLevel, `Invalid --block-level "${value}". Use one of: ${allowed}`),
   cliSkipCategory: (value: string, allowed: string) =>
     new ReviewerError(EErrorCode.CliSkipCategory, `Invalid --skip category "${value}". Use any of: ${allowed}`),
+  cliMaxSteps: (value: string) =>
+    new ReviewerError(EErrorCode.CliMaxSteps, `Invalid --max-steps "${value}". Use a positive integer.`),
+
+  // 7.x — agent mode
+  agentClaudeOnly: () =>
+    new ReviewerError(
+      EErrorCode.AgentClaudeOnly,
+      "Agent mode currently supports only the Claude provider. Use --provider claude (the default).",
+    ),
+  agentNoSubmit: (steps: number) =>
+    new ReviewerError(
+      EErrorCode.AgentNoSubmit,
+      `The agent did not submit a review within ${steps} steps. Try raising --max-steps.`,
+    ),
 };
