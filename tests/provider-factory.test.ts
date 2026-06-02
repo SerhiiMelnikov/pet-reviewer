@@ -96,8 +96,27 @@ describe("getAgentProvider", () => {
     expect(p).toBeInstanceOf(ClaudeProvider);
   });
 
-  it("throws for a non-claude provider", () => {
-    expect(() => getAgentProvider("gemini", { GEMINI_API_KEY: "k" })).toThrow(/Claude/);
+  it("returns a Gemini-based agent provider when the key is present", () => {
+    const p = getAgentProvider("gemini", { GEMINI_API_KEY: "k" });
+    expect(p).toBeInstanceOf(GeminiProvider);
+  });
+
+  it("throws when the Gemini key is missing", () => {
+    expect(() => getAgentProvider("gemini", {})).toThrow(/GEMINI_API_KEY/);
+  });
+
+  it("passes model and baseUrl through to the Gemini agent provider", () => {
+    const p = getAgentProvider("gemini", { GEMINI_API_KEY: "k" }, {
+      model: "gemini-2.5-pro",
+      baseUrl: "https://example.test",
+    }) as GeminiProvider;
+    expect(p.model).toBe("gemini-2.5-pro");
+    expect(p.baseUrl).toBe("https://example.test");
+  });
+
+  it("rejects providers that do not support agent mode", () => {
+    expect(() => getAgentProvider("ollama", {})).toThrow(/supports only/);
+    expect(() => getAgentProvider("openai-compatible", { OPENAI_API_KEY: "k" })).toThrow(/supports only/);
   });
 
   it("throws when the Claude key is missing", () => {
