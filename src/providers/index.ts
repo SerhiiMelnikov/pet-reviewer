@@ -1,4 +1,4 @@
-import { IReviewProvider } from "./types";
+import { IReviewProvider, IAgentProvider } from "./types";
 import { OllamaProvider } from "./ollama";
 import { ClaudeProvider } from "./claude";
 import { GeminiProvider } from "./gemini";
@@ -59,4 +59,23 @@ export function getProvider(
     );
   }
   throw ERRORS.unknownProvider(name);
+}
+
+export function getAgentProvider(
+  name: string,
+  env: Record<string, string | undefined> = process.env,
+  options: IProviderOptions = {},
+): IAgentProvider {
+  if (name.toLowerCase() !== "claude") {
+    throw ERRORS.agentClaudeOnly();
+  }
+  const key = env.ANTHROPIC_API_KEY;
+  if (!key) {
+    throw ERRORS.missingApiKey(
+      "ANTHROPIC_API_KEY",
+      "providers.claude.apiKey",
+      "https://console.anthropic.com",
+    );
+  }
+  return new ClaudeProvider(key, options.model || undefined);
 }
