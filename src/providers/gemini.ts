@@ -1,11 +1,51 @@
-import { IReviewProvider } from "./types";
+import {
+  IReviewProvider,
+  IAgentProvider,
+  IAgentTurn,
+  IMessage,
+  IToolSpec,
+  TContentBlock,
+} from "./types";
 import { ERRORS } from "../errors";
 
-interface IGeminiResponse {
-  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+interface IGeminiPart {
+  text?: string;
+  functionCall?: { name: string; args?: Record<string, unknown> };
 }
 
-export class GeminiProvider implements IReviewProvider {
+interface IGeminiResponse {
+  candidates?: Array<{ content?: { parts?: IGeminiPart[] } }>;
+}
+
+// Gemini matches tool results by function NAME and returns no ids. We mint ids that
+// encode the name ("read_file__0") and decode the name back when sending results.
+function decodeName(toolCallId: string): string {
+  return toolCallId.replace(/__\d+$/, "");
+}
+
+function toGeminiPart(block: TContentBlock): unknown {
+  if (block.type === "text") return { text: block.text };
+  if (block.type === "tool_use") {
+    return { functionCall: { name: block.name, args: block.input } };
+  }
+  return {
+    functionResponse: {
+      name: decodeName(block.toolCallId),
+      response: block.isError ? { error: block.content } : { content: block.content },
+    },
+  };
+}
+
+function toGeminiContent(message: IMessage): unknown {
+  const role = message.role === "assistant" ? "model" : "user";
+  const parts =
+    typeof message.content === "string"
+      ? [{ text: message.content }]
+      : message.content.map(toGeminiPart);
+  return { role, parts };
+}
+
+export class GeminiProvider implements IReviewProvider, IAgentProvider {
   constructor(
     private apiKey: string,
     readonly model = "gemini-2.5-flash",
@@ -14,7 +54,8 @@ export class GeminiProvider implements IReviewProvider {
     private timeoutMs = 180_000,
   ) {}
 
-  async review(prompt: string): Promise<string> {
+  // Shared transport: POST a request body, map errors, return the parsed response.
+  private async generate(body: unknown): Promise<IGeminiResponse> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -28,10 +69,7 @@ export class GeminiProvider implements IReviewProvider {
             "Content-Type": "application/json",
             "x-goog-api-key": this.apiKey,
           },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" },
-          }),
+          body: JSON.stringify(body),
           signal: controller.signal,
         },
       );
@@ -56,11 +94,48 @@ export class GeminiProvider implements IReviewProvider {
       );
     }
 
-    const data = (await res.json()) as IGeminiResponse;
+    return (await res.json()) as IGeminiResponse;
+  }
+
+  async review(prompt: string): Promise<string> {
+    const data = await this.generate({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" },
+    });
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (text === undefined) {
       throw ERRORS.providerEmptyResponse("Gemini");
     }
     return text;
+  }
+
+  async chat(messages: IMessage[], tools: IToolSpec[]): Promise<IAgentTurn> {
+    const data = await this.generate({
+      contents: messages.map(toGeminiContent),
+      tools: [
+        {
+          functionDeclarations: tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            parameters: t.inputSchema,
+          })),
+        },
+      ],
+    });
+
+    const parts = data.candidates?.[0]?.content?.parts ?? [];
+    const text = parts
+      .filter((p) => typeof p.text === "string")
+      .map((p) => p.text ?? "")
+      .join("");
+    const toolCalls = parts
+      .filter((p) => p.functionCall)
+      .map((p, i) => ({
+        id: `${p.functionCall!.name}__${i}`,
+        name: p.functionCall!.name,
+        input: p.functionCall!.args ?? {},
+      }));
+
+    return { text: text || undefined, toolCalls };
   }
 }
