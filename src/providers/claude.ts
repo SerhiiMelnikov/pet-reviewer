@@ -1,16 +1,35 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { IReviewProvider } from "./types";
+import { IReviewProvider, IAgentProvider, IAgentTurn, IMessage, IToolSpec, TContentBlock } from "./types";
 
 // Minimal client contract we need (makes testing easy).
 interface IMessagesClient {
   messages: {
     create(body: unknown): Promise<{
-      content: Array<{ type: string; text?: string }>;
+      content: Array<{
+        type: string;
+        text?: string;
+        id?: string;
+        name?: string;
+        input?: Record<string, unknown>;
+      }>;
     }>;
   };
 }
 
-export class ClaudeProvider implements IReviewProvider {
+function toAnthropicBlock(b: TContentBlock): unknown {
+  if (b.type === "text") return { type: "text", text: b.text };
+  if (b.type === "tool_use") return { type: "tool_use", id: b.id, name: b.name, input: b.input };
+  return { type: "tool_result", tool_use_id: b.toolCallId, content: b.content, is_error: b.isError };
+}
+
+function toAnthropicMessage(m: IMessage): unknown {
+  return {
+    role: m.role,
+    content: typeof m.content === "string" ? m.content : m.content.map(toAnthropicBlock),
+  };
+}
+
+export class ClaudeProvider implements IReviewProvider, IAgentProvider {
   private client: IMessagesClient;
 
   constructor(
@@ -31,5 +50,26 @@ export class ClaudeProvider implements IReviewProvider {
       .filter((b) => b.type === "text")
       .map((b) => b.text ?? "")
       .join("");
+  }
+
+  async chat(messages: IMessage[], tools: IToolSpec[]): Promise<IAgentTurn> {
+    const res = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 4096,
+      tools: tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        input_schema: t.inputSchema,
+      })),
+      messages: messages.map(toAnthropicMessage),
+    });
+    const text = res.content
+      .filter((b) => b.type === "text")
+      .map((b) => b.text ?? "")
+      .join("");
+    const toolCalls = res.content
+      .filter((b) => b.type === "tool_use")
+      .map((b) => ({ id: b.id as string, name: b.name as string, input: b.input ?? {} }));
+    return { text: text || undefined, toolCalls };
   }
 }
