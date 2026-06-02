@@ -1,11 +1,13 @@
 import "dotenv/config";
 import { Command } from "commander";
 import pc from "picocolors";
-import { getDiff } from "./git";
+import { getDiff, getRepoRoot } from "./git";
 import { buildPrompt } from "./prompt";
 import { parseReview } from "./parse";
 import { renderFindings } from "./render";
-import { getProvider } from "./providers";
+import { getProvider, getAgentProvider } from "./providers";
+import { runAgent } from "./agent";
+import { INormalizeResult } from "./normalize";
 import { decideCommit } from "./gate";
 import { createCommit } from "./commit";
 import { SEVERITIES, CATEGORIES, TSeverity, TCategory } from "./schema";
@@ -28,6 +30,15 @@ function parseSkip(value: string): TCategory[] {
   return items as TCategory[];
 }
 
+function parseMaxSteps(value?: string): number {
+  if (value === undefined) return 12;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) {
+    throw ERRORS.cliMaxSteps(value);
+  }
+  return n;
+}
+
 // Maps the resolved API key to the env-var name the chosen provider expects.
 const PROVIDER_ENV_VAR: Record<string, string> = {
   gemini: "GEMINI_API_KEY",
@@ -48,6 +59,8 @@ interface IReviewOpts {
   skip?: string;
   model?: string;
   baseUrl?: string;
+  agent?: boolean;
+  maxSteps?: string;
 }
 
 async function runReview(opts: IReviewOpts): Promise<void> {
@@ -96,35 +109,58 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     return;
   }
 
-  let provider;
-  try {
-    provider = getProvider(
-      settings.provider,
-      providerEnv(settings.provider, settings.apiKey),
-      { model: settings.model, baseUrl: settings.baseUrl },
-    );
-  } catch (err) {
-    console.error(pc.red((err as Error).message));
-    process.exit(1);
+  let result: INormalizeResult;
+
+  if (opts.agent) {
+    let maxSteps: number;
+    let agentProvider;
+    try {
+      maxSteps = parseMaxSteps(opts.maxSteps);
+      agentProvider = getAgentProvider(
+        settings.provider,
+        providerEnv(settings.provider, settings.apiKey),
+        { model: settings.model },
+      );
+    } catch (err) {
+      console.error(pc.red((err as Error).message));
+      process.exit(1);
+    }
+    console.log(pc.dim(`Reviewing with the Claude agent (max ${maxSteps} steps)...`));
+    try {
+      result = await runAgent(diff, agentProvider, { maxSteps, root: getRepoRoot() }, settings.rules);
+    } catch (err) {
+      console.error(pc.red(`Agent failed: ${(err as Error).message}`));
+      process.exit(1);
+    }
+  } else {
+    let provider;
+    try {
+      provider = getProvider(
+        settings.provider,
+        providerEnv(settings.provider, settings.apiKey),
+        { model: settings.model, baseUrl: settings.baseUrl },
+      );
+    } catch (err) {
+      console.error(pc.red((err as Error).message));
+      process.exit(1);
+    }
+    console.log(pc.dim(`Analyzing changes via "${settings.provider}"...`));
+    let rawText: string;
+    try {
+      rawText = await provider.review(buildPrompt(diff, settings.rules));
+    } catch (err) {
+      console.error(pc.red(`Model request failed: ${(err as Error).message}`));
+      process.exit(1);
+    }
+    try {
+      result = parseReview(rawText);
+    } catch (err) {
+      console.error(pc.red(`Failed to parse the model response: ${(err as Error).message}`));
+      process.exit(1);
+    }
   }
 
-  console.log(pc.dim(`Analyzing changes via "${settings.provider}"...`));
-  let rawText: string;
-  try {
-    rawText = await provider.review(buildPrompt(diff, settings.rules));
-  } catch (err) {
-    console.error(pc.red(`Model request failed: ${(err as Error).message}`));
-    process.exit(1);
-  }
-
-  let review;
-  let dropped = 0;
-  try {
-    ({ review, dropped } = parseReview(rawText));
-  } catch (err) {
-    console.error(pc.red(`Failed to parse the model response: ${(err as Error).message}`));
-    process.exit(1);
-  }
+  const { review, dropped } = result;
   if (dropped > 0) {
     console.error(
       pc.yellow(`Note: dropped ${dropped} malformed finding(s) from the model response.`),
@@ -180,6 +216,8 @@ export async function run(): Promise<void> {
     .option("--skip <categories>", "comma-separated categories that never block")
     .option("--model <name>", "model to use")
     .option("--base-url <url>", "Ollama server URL")
+    .option("--agent", "run an agentic review (Claude only): reads files, greps, lists dirs")
+    .option("--max-steps <n>", "max agent tool-use steps (default 12)")
     .action(runReview);
 
   await program.parseAsync();
