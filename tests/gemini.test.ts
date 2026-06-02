@@ -144,6 +144,32 @@ describe("GeminiProvider.chat", () => {
     });
   });
 
+  it("converts nullable union types in tool schemas to Gemini's nullable form", async () => {
+    const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const tools: IToolSpec[] = [
+      {
+        name: "submit_review",
+        description: "submit",
+        inputSchema: {
+          type: "object",
+          properties: {
+            line: { type: ["number", "null"] },
+            note: { type: ["string", "null"] },
+            name: { type: "string" },
+          },
+        },
+      },
+    ];
+    await provider.chat([{ role: "user", content: "hi" }], tools);
+
+    const body = JSON.parse((fetchFn as any).mock.calls[0][1].body);
+    const params = body.tools[0].functionDeclarations[0].parameters;
+    expect(params.properties.line).toEqual({ type: "number", nullable: true });
+    expect(params.properties.note).toEqual({ type: "string", nullable: true });
+    expect(params.properties.name).toEqual({ type: "string" });
+  });
+
   it("maps an error tool result to an { error } functionResponse", async () => {
     const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
     const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);

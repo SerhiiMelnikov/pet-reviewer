@@ -36,6 +36,33 @@ function toGeminiPart(block: TContentBlock): unknown {
   };
 }
 
+// Gemini's function parameters use an OpenAPI subset: `type` must be a single
+// string, and nullability is a separate `nullable` flag — not a ["x","null"] union
+// (which JSON Schema / Anthropic allow). Rewrite union-with-null into that form.
+function toGeminiSchema(schema: unknown): unknown {
+  if (typeof schema !== "object" || schema === null) return schema;
+  if (Array.isArray(schema)) return schema.map(toGeminiSchema);
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema as Record<string, unknown>)) {
+    if (key === "type" && Array.isArray(value)) {
+      out.type = value.find((t) => t !== "null");
+      if (value.includes("null")) out.nullable = true;
+    } else if (key === "properties" && value && typeof value === "object") {
+      const props: Record<string, unknown> = {};
+      for (const [propName, propSchema] of Object.entries(value as Record<string, unknown>)) {
+        props[propName] = toGeminiSchema(propSchema);
+      }
+      out.properties = props;
+    } else if (key === "items") {
+      out.items = toGeminiSchema(value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 function toGeminiContent(message: IMessage): unknown {
   const role = message.role === "assistant" ? "model" : "user";
   const parts =
@@ -117,7 +144,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
           functionDeclarations: tools.map((t) => ({
             name: t.name,
             description: t.description,
-            parameters: t.inputSchema,
+            parameters: toGeminiSchema(t.inputSchema),
           })),
         },
       ],
