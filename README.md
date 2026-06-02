@@ -40,13 +40,17 @@ beyond the diff, then submits its findings.
 
 ```bash
 npx pet-reviewer --agent
+npx pet-reviewer --agent --provider gemini
 npx pet-reviewer --agent --commit
 npx pet-reviewer --agent --max-steps 20
 ```
 
-- **Provider:** Claude only for now (`--provider claude`, the default). Other
-  providers stay single-shot; Gemini/openai-compatible agent support is planned.
-  Any Claude model works — use `--model` for a stronger one.
+- **Providers:** Claude (the default) and Gemini support agent mode. `ollama` and
+  `openai-compatible` stay single-shot for now.
+- **Model choice matters:** the loop makes several sequential calls with growing
+  context, so a weak model can be slow — you may wait a long time for a result.
+  Prefer a stronger model for `--agent` (e.g. `claude-sonnet-4-6` or
+  `gemini-2.5-pro`); the default `flash`/`haiku` models are fine for quick runs.
 - **What it can do:** read any file in the repo (`read_file`), search the codebase
   (`grep`), and browse directories (`list_dir`). It is strictly read-only — it
   cannot write, run commands, or access anything outside the repository.
@@ -56,6 +60,9 @@ npx pet-reviewer --agent --max-steps 20
 - **Trade-off:** deeper, cross-file reviews, but slower and costlier (several
   model calls per run) and less deterministic. Use the default single-shot mode
   for quick, cheap reviews; use `--agent` when depth matters.
+- **Out of steps:** if the agent hits `--max-steps` before finishing, it returns a
+  partial review (marked incomplete) instead of failing. Raise `--max-steps` for a
+  fuller pass on large diffs.
 
 ## Providers & models
 
