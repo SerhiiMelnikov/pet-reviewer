@@ -29,6 +29,30 @@ function toAnthropicMessage(m: IMessage): unknown {
   };
 }
 
+const EPHEMERAL = { type: "ephemeral" } as const;
+
+// Mark a message's last content block with cache_control, converting a plain
+// string content into a single text block first.
+function markLastBlock(message: { role: string; content: unknown }): void {
+  if (typeof message.content === "string") {
+    message.content = [{ type: "text", text: message.content, cache_control: EPHEMERAL }];
+    return;
+  }
+  if (Array.isArray(message.content) && message.content.length > 0) {
+    const last = message.content[message.content.length - 1] as Record<string, unknown>;
+    last.cache_control = EPHEMERAL;
+  }
+}
+
+// Static breakpoint on the first message (instructions + diff — also caches tools),
+// rolling breakpoint on the last message each turn. If there is only one message,
+// both land on it (idempotent).
+function addCacheBreakpoints(messages: Array<{ role: string; content: unknown }>): void {
+  if (messages.length === 0) return;
+  markLastBlock(messages[0]);
+  markLastBlock(messages[messages.length - 1]);
+}
+
 export class ClaudeProvider implements IReviewProvider, IAgentProvider {
   private client: IMessagesClient;
 
@@ -53,6 +77,12 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
   }
 
   async chat(messages: IMessage[], tools: IToolSpec[]): Promise<IAgentTurn> {
+    const anthropicMessages = messages.map(toAnthropicMessage) as Array<{
+      role: string;
+      content: unknown;
+    }>;
+    addCacheBreakpoints(anthropicMessages);
+
     const res = await this.client.messages.create({
       model: this.model,
       max_tokens: 4096,
@@ -61,7 +91,7 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
         description: t.description,
         input_schema: t.inputSchema,
       })),
-      messages: messages.map(toAnthropicMessage),
+      messages: anthropicMessages,
     });
     const text = res.content
       .filter((b) => b.type === "text")
