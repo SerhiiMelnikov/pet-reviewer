@@ -80,6 +80,14 @@ describe("getProvider", () => {
     expect(p.model).toBe("claude-sonnet-4-6");
   });
 
+  it("passes temperature through to providers (default 0)", () => {
+    expect((getProvider("ollama", {}) as OllamaProvider).temperature).toBe(0);
+    const claude = getProvider("claude", { ANTHROPIC_API_KEY: "k" }, { temperature: 0.6 }) as ClaudeProvider;
+    expect(claude.temperature).toBe(0.6);
+    const gemini = getProvider("gemini", { GEMINI_API_KEY: "k" }, { temperature: 0.3 }) as GeminiProvider;
+    expect(gemini.temperature).toBe(0.3);
+  });
+
   it("uses provider defaults when no options are given", () => {
     const ollama = getProvider("ollama", {}) as OllamaProvider;
     expect(ollama.model).toBe("llama3.2");
@@ -121,5 +129,10 @@ describe("getAgentProvider", () => {
 
   it("throws when the Claude key is missing", () => {
     expect(() => getAgentProvider("claude", {})).toThrow(/ANTHROPIC_API_KEY/);
+  });
+
+  it("passes temperature through to the agent provider", () => {
+    const p = getAgentProvider("claude", { ANTHROPIC_API_KEY: "k" }, { temperature: 0.2 }) as ClaudeProvider;
+    expect(p.temperature).toBe(0.2);
   });
 });

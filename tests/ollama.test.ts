@@ -12,7 +12,7 @@ function fakeFetch(body: unknown, ok = true, status = 200) {
 describe("OllamaProvider", () => {
   it("sends the prompt and returns the response field", async () => {
     const fetchFn = fakeFetch({ response: "[1,2]" });
-    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", fetchFn);
+    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", 0, fetchFn);
     const result = await provider.review("MY_PROMPT");
 
     expect(result).toBe("[1,2]");
@@ -24,13 +24,13 @@ describe("OllamaProvider", () => {
 
   it("throws a clear error on a non-ok response", async () => {
     const fetchFn = fakeFetch({}, false, 500);
-    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", fetchFn);
+    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/500/);
   });
 
   it("throws a friendly error when the connection fails", async () => {
     const fetchFn = vi.fn().mockRejectedValue(new Error("fetch failed")) as unknown as typeof fetch;
-    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", fetchFn);
+    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/ollama serve/);
   });
 
@@ -38,7 +38,14 @@ describe("OllamaProvider", () => {
     const abortErr = new Error("aborted");
     abortErr.name = "AbortError";
     const fetchFn = vi.fn().mockRejectedValue(abortErr) as unknown as typeof fetch;
-    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", fetchFn);
+    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/timed out/);
+  });
+
+  it("sends temperature in options", async () => {
+    const fetchFn = fakeFetch({ response: "[]" });
+    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", 0, fetchFn);
+    await provider.review("p");
+    expect(JSON.parse((fetchFn as any).mock.calls[0][1].body).options.temperature).toBe(0);
   });
 });

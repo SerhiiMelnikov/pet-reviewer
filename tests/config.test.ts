@@ -62,4 +62,15 @@ describe("validateConfig", () => {
   it("throws when rules is not an array", () => {
     expect(() => validateConfig({ rules: "nope" })).toThrow(/rules/);
   });
+
+  it("accepts a valid temperature", () => {
+    expect(validateConfig({ temperature: 0 })).toEqual({ temperature: 0 });
+    expect(validateConfig({ temperature: 0.7 })).toEqual({ temperature: 0.7 });
+  });
+
+  it("throws on an out-of-range or non-number temperature", () => {
+    expect(() => validateConfig({ temperature: 2 })).toThrow(/temperature/);
+    expect(() => validateConfig({ temperature: -1 })).toThrow(/temperature/);
+    expect(() => validateConfig({ temperature: "hot" })).toThrow(/temperature/);
+  });
 });

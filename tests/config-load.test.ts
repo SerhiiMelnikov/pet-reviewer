@@ -128,4 +128,10 @@ describe("resolveSettings", () => {
     const rules = [{ text: "No any", severity: "warning" as const }];
     expect(resolveSettings({}, { rules }, env).rules).toEqual(rules);
   });
+
+  it("resolves temperature with CLI > config > default 0", () => {
+    expect(resolveSettings({}, {}, {}).temperature).toBe(0);
+    expect(resolveSettings({}, { temperature: 0.4 }, {}).temperature).toBe(0.4);
+    expect(resolveSettings({ temperature: 0.9 }, { temperature: 0.4 }, {}).temperature).toBe(0.9);
+  });
 });

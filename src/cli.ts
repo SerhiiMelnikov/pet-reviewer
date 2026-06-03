@@ -39,6 +39,15 @@ function parseMaxSteps(value?: string): number {
   return n;
 }
 
+function parseTemperature(value?: string): number | undefined {
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  if (Number.isNaN(n) || n < 0 || n > 1) {
+    throw ERRORS.cliTemperature(value);
+  }
+  return n;
+}
+
 // Maps the resolved API key to the env-var name the chosen provider expects.
 const PROVIDER_ENV_VAR: Record<string, string> = {
   gemini: "GEMINI_API_KEY",
@@ -61,6 +70,7 @@ interface IReviewOpts {
   baseUrl?: string;
   agent?: boolean;
   maxSteps?: string;
+  temperature?: string;
 }
 
 async function runReview(opts: IReviewOpts): Promise<void> {
@@ -74,9 +84,11 @@ async function runReview(opts: IReviewOpts): Promise<void> {
 
   let cliBlockLevel: TSeverity | undefined;
   let cliSkip: TCategory[] | undefined;
+  let cliTemperature: number | undefined;
   try {
     cliBlockLevel = opts.blockLevel ? parseBlockLevel(opts.blockLevel) : undefined;
     cliSkip = opts.skip ? parseSkip(opts.skip) : undefined;
+    cliTemperature = parseTemperature(opts.temperature);
   } catch (err) {
     console.error(pc.red((err as Error).message));
     process.exit(1);
@@ -89,6 +101,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       baseUrl: opts.baseUrl,
       blockLevel: cliBlockLevel,
       skip: cliSkip,
+      temperature: cliTemperature,
     },
     config,
     process.env,
@@ -119,7 +132,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       agentProvider = getAgentProvider(
         settings.provider,
         providerEnv(settings.provider, settings.apiKey),
-        { model: settings.model, baseUrl: settings.baseUrl },
+        { model: settings.model, baseUrl: settings.baseUrl, temperature: settings.temperature },
       );
     } catch (err) {
       console.error(pc.red((err as Error).message));
@@ -143,7 +156,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       provider = getProvider(
         settings.provider,
         providerEnv(settings.provider, settings.apiKey),
-        { model: settings.model, baseUrl: settings.baseUrl },
+        { model: settings.model, baseUrl: settings.baseUrl, temperature: settings.temperature },
       );
     } catch (err) {
       console.error(pc.red((err as Error).message));
@@ -223,6 +236,7 @@ export async function run(): Promise<void> {
     .option("--base-url <url>", "Ollama server URL")
     .option("--agent", "run an agentic review (Claude only): reads files, greps, lists dirs")
     .option("--max-steps <n>", "max agent tool-use steps (default 12)")
+    .option("--temperature <n>", "sampling temperature 0..1 (default 0, deterministic)")
     .action(runReview);
 
   await program.parseAsync();

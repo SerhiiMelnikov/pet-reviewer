@@ -9,6 +9,7 @@ export class OllamaProvider implements IReviewProvider {
   constructor(
     readonly model = "llama3.2",
     readonly baseUrl = "http://localhost:11434",
+    readonly temperature = 0,
     private fetchFn: typeof fetch = fetch,
     private timeoutMs = 180_000,
   ) {}
@@ -27,6 +28,7 @@ export class OllamaProvider implements IReviewProvider {
           prompt,
           stream: false,
           format: "json",
+          options: { temperature: this.temperature },
         }),
         signal: controller.signal,
       });
