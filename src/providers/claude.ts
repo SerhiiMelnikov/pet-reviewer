@@ -59,6 +59,7 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
   constructor(
     apiKey: string,
     readonly model = "claude-haiku-4-5-20251001",
+    readonly temperature = 0,
     client?: IMessagesClient,
   ) {
     this.client = client ?? (new Anthropic({ apiKey }) as unknown as IMessagesClient);
@@ -68,6 +69,7 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
     const msg = await this.client.messages.create({
       model: this.model,
       max_tokens: 2048,
+      temperature: this.temperature,
       messages: [{ role: "user", content: prompt }],
     });
     return msg.content
@@ -86,6 +88,7 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
     const body: Record<string, unknown> = {
       model: this.model,
       max_tokens: 4096,
+      temperature: this.temperature,
       tools: tools.map((t) => ({
         name: t.name,
         description: t.description,
