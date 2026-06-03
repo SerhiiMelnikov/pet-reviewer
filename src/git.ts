@@ -5,9 +5,11 @@ export type TCommandRunner = (cmd: string, args: string[]) => string;
 export const defaultRunner: TCommandRunner = (cmd, args) =>
   execFileSync(cmd, args, { encoding: "utf8" });
 
-// Returns changes relative to the last commit (staged + unstaged).
-export function getDiff(run: TCommandRunner = defaultRunner): string {
-  return run("git", ["diff", "HEAD"]);
+// Returns the diff to review: working tree vs HEAD by default, or the three-dot
+// `<base>...HEAD` (the PR diff — changes since the merge-base) when a base ref is given.
+export function getDiff(run: TCommandRunner = defaultRunner, base?: string): string {
+  const args = base ? ["diff", `${base}...HEAD`] : ["diff", "HEAD"];
+  return run("git", args);
 }
 
 // Returns the repository root, falling back to the current directory.
