@@ -96,7 +96,7 @@ export async function runAgent(
     content:
       "You have run out of steps. Do not call any more read-only tools. Call submit_review now with the findings you have gathered so far. A partial review is fine.",
   });
-  const finalTurn = await provider.chat(messages, [SUBMIT_REVIEW_SPEC]);
+  const finalTurn = await provider.chat(messages, [SUBMIT_REVIEW_SPEC], { forceTool: "submit_review" });
   appendAssistant(messages, finalTurn);
   const { finalResult } = await processToolCalls(finalTurn, options.root);
   if (finalResult) return { ...finalResult, truncated: true };
