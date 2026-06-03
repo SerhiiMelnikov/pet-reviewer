@@ -5,6 +5,7 @@ import {
   IMessage,
   IToolSpec,
   TContentBlock,
+  IChatOptions,
 } from "./types";
 import { ERRORS } from "../errors";
 
@@ -136,8 +137,8 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
     return text;
   }
 
-  async chat(messages: IMessage[], tools: IToolSpec[]): Promise<IAgentTurn> {
-    const data = await this.generate({
+  async chat(messages: IMessage[], tools: IToolSpec[], opts: IChatOptions = {}): Promise<IAgentTurn> {
+    const body: Record<string, unknown> = {
       contents: messages.map(toGeminiContent),
       tools: [
         {
@@ -148,7 +149,14 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
           })),
         },
       ],
-    });
+    };
+    if (opts.forceTool) {
+      body.toolConfig = {
+        functionCallingConfig: { mode: "ANY", allowedFunctionNames: [opts.forceTool] },
+      };
+    }
+
+    const data = await this.generate(body);
 
     const parts = data.candidates?.[0]?.content?.parts ?? [];
     const text = parts

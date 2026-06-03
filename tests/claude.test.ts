@@ -51,6 +51,34 @@ describe("ClaudeProvider.chat", () => {
   });
 });
 
+describe("ClaudeProvider.chat forceTool", () => {
+  it("forces the tool via tool_choice when forceTool is set", async () => {
+    const create = vi.fn().mockResolvedValue({ content: [{ type: "text", text: "x" }] });
+    const client = { messages: { create } };
+    const provider = new ClaudeProvider("k", undefined, client as any);
+    const submitTool: IToolSpec[] = [
+      { name: "submit_review", description: "s", inputSchema: { type: "object" } },
+    ];
+
+    await provider.chat([{ role: "user", content: "hi" }], submitTool, { forceTool: "submit_review" });
+
+    const body = create.mock.calls[0][0];
+    expect(body.tool_choice).toEqual({ type: "tool", name: "submit_review" });
+  });
+
+  it("does not set tool_choice when no forceTool is given", async () => {
+    const create = vi.fn().mockResolvedValue({ content: [{ type: "text", text: "x" }] });
+    const client = { messages: { create } };
+    const provider = new ClaudeProvider("k", undefined, client as any);
+    const tools: IToolSpec[] = [{ name: "read_file", description: "d", inputSchema: { type: "object" } }];
+
+    await provider.chat([{ role: "user", content: "hi" }], tools);
+
+    const body = create.mock.calls[0][0];
+    expect(body.tool_choice).toBeUndefined();
+  });
+});
+
 describe("ClaudeProvider.chat caching", () => {
   const tools: IToolSpec[] = [
     { name: "read_file", description: "d", inputSchema: { type: "object" } },

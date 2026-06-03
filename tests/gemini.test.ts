@@ -170,6 +170,30 @@ describe("GeminiProvider.chat", () => {
     expect(params.properties.name).toEqual({ type: "string" });
   });
 
+  it("forces a function call via toolConfig when forceTool is set", async () => {
+    const fetchFn = fakeFetch({
+      candidates: [{ content: { parts: [{ functionCall: { name: "submit_review", args: {} } }] } }],
+    });
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+
+    await provider.chat([{ role: "user", content: "hi" }], TOOLS, { forceTool: "submit_review" });
+
+    const body = JSON.parse((fetchFn as any).mock.calls[0][1].body);
+    expect(body.toolConfig).toEqual({
+      functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_review"] },
+    });
+  });
+
+  it("omits toolConfig when no forceTool is given", async () => {
+    const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+
+    await provider.chat([{ role: "user", content: "hi" }], TOOLS);
+
+    const body = JSON.parse((fetchFn as any).mock.calls[0][1].body);
+    expect(body.toolConfig).toBeUndefined();
+  });
+
   it("maps an error tool result to an { error } functionResponse", async () => {
     const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
     const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);

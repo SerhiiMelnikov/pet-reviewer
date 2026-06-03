@@ -34,7 +34,12 @@ export interface IAgentTurn {
   toolCalls: IToolCall[];
 }
 
+export interface IChatOptions {
+  // When set, the provider must force the model to call this tool this turn.
+  forceTool?: string;
+}
+
 // A provider that can drive a tool-use loop.
 export interface IAgentProvider {
-  chat(messages: IMessage[], tools: IToolSpec[]): Promise<IAgentTurn>;
+  chat(messages: IMessage[], tools: IToolSpec[], opts?: IChatOptions): Promise<IAgentTurn>;
 }

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { IReviewProvider, IAgentProvider, IAgentTurn, IMessage, IToolSpec, TContentBlock } from "./types";
+import { IReviewProvider, IAgentProvider, IAgentTurn, IMessage, IToolSpec, TContentBlock, IChatOptions } from "./types";
 
 // Minimal client contract we need (makes testing easy).
 interface IMessagesClient {
@@ -76,14 +76,14 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
       .join("");
   }
 
-  async chat(messages: IMessage[], tools: IToolSpec[]): Promise<IAgentTurn> {
+  async chat(messages: IMessage[], tools: IToolSpec[], opts: IChatOptions = {}): Promise<IAgentTurn> {
     const anthropicMessages = messages.map(toAnthropicMessage) as Array<{
       role: string;
       content: unknown;
     }>;
     addCacheBreakpoints(anthropicMessages);
 
-    const res = await this.client.messages.create({
+    const body: Record<string, unknown> = {
       model: this.model,
       max_tokens: 4096,
       tools: tools.map((t) => ({
@@ -92,7 +92,12 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
         input_schema: t.inputSchema,
       })),
       messages: anthropicMessages,
-    });
+    };
+    if (opts.forceTool) {
+      body.tool_choice = { type: "tool", name: opts.forceTool };
+    }
+
+    const res = await this.client.messages.create(body);
     const text = res.content
       .filter((b) => b.type === "text")
       .map((b) => b.text ?? "")

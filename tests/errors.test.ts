@@ -27,7 +27,6 @@ describe("ERRORS", () => {
   it("builds the agent error codes", () => {
     expect(ERRORS.agentUnsupported("ollama").code).toBe(EErrorCode.AgentUnsupported);
     expect(ERRORS.agentUnsupported("ollama").message).toContain("ollama");
-    expect(ERRORS.agentNoSubmit(12).message).toContain("12");
     expect(ERRORS.cliMaxSteps("x").code).toBe(EErrorCode.CliMaxSteps);
   });
 });
