@@ -71,6 +71,7 @@ interface IReviewOpts {
   agent?: boolean;
   maxSteps?: string;
   temperature?: string;
+  base?: string;
 }
 
 async function runReview(opts: IReviewOpts): Promise<void> {
@@ -89,6 +90,9 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     cliBlockLevel = opts.blockLevel ? parseBlockLevel(opts.blockLevel) : undefined;
     cliSkip = opts.skip ? parseSkip(opts.skip) : undefined;
     cliTemperature = parseTemperature(opts.temperature);
+    if (opts.base && opts.commit) {
+      throw ERRORS.cliBaseCommit();
+    }
   } catch (err) {
     console.error(pc.red((err as Error).message));
     process.exit(1);
@@ -109,11 +113,12 @@ async function runReview(opts: IReviewOpts): Promise<void> {
 
   let diff: string;
   try {
-    diff = getDiff();
+    diff = getDiff(undefined, opts.base);
   } catch {
-    console.error(
-      pc.red("Failed to read git diff. Is this a git repository with at least one commit?"),
-    );
+    const hint = opts.base
+      ? `Could not diff against "${opts.base}". Make sure the ref exists (in CI, fetch it — e.g. actions/checkout with fetch-depth: 0).`
+      : "Is this a git repository with at least one commit?";
+    console.error(pc.red(`Failed to read git diff. ${hint}`));
     process.exit(1);
   }
 
@@ -237,6 +242,7 @@ export async function run(): Promise<void> {
     .option("--agent", "run an agentic review (Claude only): reads files, greps, lists dirs")
     .option("--max-steps <n>", "max agent tool-use steps (default 12)")
     .option("--temperature <n>", "sampling temperature 0..1 (default 0, deterministic)")
+    .option("--base <ref>", "review committed changes vs this base ref (git diff <ref>...HEAD)")
     .action(runReview);
 
   await program.parseAsync();
