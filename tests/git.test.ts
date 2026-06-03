@@ -13,4 +13,11 @@ describe("getDiff", () => {
     const run = vi.fn().mockReturnValue("");
     expect(getDiff(run)).toBe("");
   });
+
+  it("calls `git diff <base>...HEAD` when a base is given", () => {
+    const run = vi.fn().mockReturnValue("diff");
+    const result = getDiff(run, "main");
+    expect(run).toHaveBeenCalledWith("git", ["diff", "main...HEAD"]);
+    expect(result).toBe("diff");
+  });
 });
