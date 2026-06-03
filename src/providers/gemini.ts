@@ -78,6 +78,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
     private apiKey: string,
     readonly model = "gemini-2.5-flash",
     readonly baseUrl = "https://generativelanguage.googleapis.com",
+    readonly temperature = 0,
     private fetchFn: typeof fetch = fetch,
     private timeoutMs = 180_000,
   ) {}
@@ -128,7 +129,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
   async review(prompt: string): Promise<string> {
     const data = await this.generate({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json" },
+      generationConfig: { responseMimeType: "application/json", temperature: this.temperature },
     });
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (text === undefined) {
@@ -146,6 +147,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
   async chat(messages: IMessage[], tools: IToolSpec[], opts: IChatOptions = {}): Promise<IAgentTurn> {
     const body: Record<string, unknown> = {
       contents: messages.map(toGeminiContent),
+      generationConfig: { temperature: this.temperature },
       tools: [
         {
           functionDeclarations: tools.map((t) => ({

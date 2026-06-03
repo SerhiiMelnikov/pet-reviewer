@@ -32,6 +32,7 @@ describe("GeminiProvider", () => {
       "KEY",
       "gemini-2.5-flash",
       "https://generativelanguage.googleapis.com",
+      0,
       fetchFn,
     );
     const result = await provider.review("MY_PROMPT");
@@ -49,7 +50,7 @@ describe("GeminiProvider", () => {
 
   it("throws a clear error on a non-ok response", async () => {
     const fetchFn = fakeFetch({}, false, 403);
-    const provider = new GeminiProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/403/);
   });
 
@@ -57,7 +58,7 @@ describe("GeminiProvider", () => {
     const fetchFn = vi
       .fn()
       .mockRejectedValue(new Error("fetch failed")) as unknown as typeof fetch;
-    const provider = new GeminiProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/reach Gemini/);
   });
 
@@ -67,13 +68,13 @@ describe("GeminiProvider", () => {
     const fetchFn = vi
       .fn()
       .mockRejectedValue(abortErr) as unknown as typeof fetch;
-    const provider = new GeminiProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/timed out/);
   });
 
   it("throws when the response has no candidates", async () => {
     const fetchFn = fakeFetch({ candidates: [] });
-    const provider = new GeminiProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/no content/i);
   });
 });
@@ -85,7 +86,7 @@ describe("GeminiProvider.chat", () => {
         { content: { parts: [{ functionCall: { name: "read_file", args: { path: "x.ts" } } }] } },
       ],
     });
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
     const turn = await provider.chat([{ role: "user", content: "hi" }], TOOLS);
 
     expect(turn.toolCalls).toEqual([
@@ -96,7 +97,7 @@ describe("GeminiProvider.chat", () => {
 
   it("maps a text-only part to turn.text with no tool calls", async () => {
     const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "hello" }] } }] });
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
     const turn = await provider.chat([{ role: "user", content: "hi" }], TOOLS);
 
     expect(turn.text).toBe("hello");
@@ -105,7 +106,7 @@ describe("GeminiProvider.chat", () => {
 
   it("sends functionDeclarations and no responseMimeType, mapping the user role", async () => {
     const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
     await provider.chat([{ role: "user", content: "hi" }], TOOLS);
 
     const init = (fetchFn as any).mock.calls[0][1];
@@ -121,7 +122,7 @@ describe("GeminiProvider.chat", () => {
       { candidates: [{ content: { parts: [{ functionCall: { name: "read_file", args: { path: "x.ts" } } }] } }] },
       { candidates: [{ content: { parts: [{ text: "done" }] } }] },
     );
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
 
     const turn1 = await provider.chat([{ role: "user", content: "review" }], TOOLS);
     expect(turn1.toolCalls[0].id).toBe("read_file__0");
@@ -146,7 +147,7 @@ describe("GeminiProvider.chat", () => {
 
   it("converts nullable union types in tool schemas to Gemini's nullable form", async () => {
     const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
     const tools: IToolSpec[] = [
       {
         name: "submit_review",
@@ -174,7 +175,7 @@ describe("GeminiProvider.chat", () => {
     const fetchFn = fakeFetch({
       candidates: [{ content: { parts: [{ functionCall: { name: "submit_review", args: {} } }] } }],
     });
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
 
     await provider.chat([{ role: "user", content: "hi" }], TOOLS, { forceTool: "submit_review" });
 
@@ -186,7 +187,7 @@ describe("GeminiProvider.chat", () => {
 
   it("omits toolConfig when no forceTool is given", async () => {
     const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
 
     await provider.chat([{ role: "user", content: "hi" }], TOOLS);
 
@@ -196,7 +197,7 @@ describe("GeminiProvider.chat", () => {
 
   it("maps an error tool result to an { error } functionResponse", async () => {
     const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
-    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, fetchFn);
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
     const messages: IMessage[] = [
       { role: "user", content: [{ type: "tool_result", toolCallId: "read_file__0", content: "boom", isError: true }] },
     ];
@@ -204,5 +205,19 @@ describe("GeminiProvider.chat", () => {
 
     const body = JSON.parse((fetchFn as any).mock.calls[0][1].body);
     expect(body.contents[0].parts[0].functionResponse.response).toEqual({ error: "boom" });
+  });
+});
+
+describe("GeminiProvider temperature", () => {
+  it("puts temperature in generationConfig for review and chat", async () => {
+    const reviewFetch = fakeFetch({ candidates: [{ content: { parts: [{ text: "[]" }] } }] });
+    const reviewProvider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, reviewFetch);
+    await reviewProvider.review("p");
+    expect(JSON.parse((reviewFetch as any).mock.calls[0][1].body).generationConfig.temperature).toBe(0);
+
+    const chatFetch = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
+    const chatProvider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0.5, chatFetch);
+    await chatProvider.chat([{ role: "user", content: "hi" }], TOOLS);
+    expect(JSON.parse((chatFetch as any).mock.calls[0][1].body).generationConfig.temperature).toBe(0.5);
   });
 });
