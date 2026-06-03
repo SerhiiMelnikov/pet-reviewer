@@ -30,7 +30,7 @@ npx pet-reviewer --provider gemini
 
 Flags (override config): `--provider`, `--model`, `--base-url`, `--commit`,
 `--block-level <critical|warning|nit>`, `--skip <categories>`, `--agent`,
-`--max-steps <n>`.
+`--max-steps <n>`, `--temperature <0..1>`.
 
 ## Agent mode (experimental)
 
@@ -116,6 +116,8 @@ project):
 export default {
   // Default provider: "claude" | "ollama" | "gemini" | "openai-compatible".
   provider: "claude",
+  temperature: 0, // 0 = deterministic reviews; raise toward 1 for more varied output
+
   providers: {
     claude: { model: "claude-haiku-4-5-20251001", apiKey: process.env.ANTHROPIC_API_KEY },
     gemini: { model: "gemini-2.5-flash", apiKey: process.env.GEMINI_API_KEY },
@@ -149,6 +151,9 @@ What each setting affects:
   server, or — for `openai-compatible` — any OpenAI-compatible endpoint
   (OpenRouter, Groq, Together, DeepSeek, LM Studio, …). See the
   [Providers & models](#providers--models) table for example URLs.
+- **`temperature`** — model sampling temperature (0–1). Default `0` gives the most
+  consistent, repeatable reviews; higher values add variety. CLI `--temperature`
+  overrides it.
 - **`commit.blockLevel`** — minimum severity that blocks `--commit`.
 - **`commit.skip`** — categories that never block (still shown in output).
 - **`rules`** — your own review criteria; violations become `custom` findings
