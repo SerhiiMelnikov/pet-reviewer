@@ -10,6 +10,7 @@ export type TProviderName = "claude" | "ollama" | "gemini" | "openai-compatible"
 export interface IProviderOptions {
   model?: string;
   baseUrl?: string;
+  temperature?: number;
 }
 
 export function getProvider(
@@ -19,7 +20,7 @@ export function getProvider(
 ): IReviewProvider {
   const normalized = name.toLowerCase();
   if (normalized === "ollama") {
-    return new OllamaProvider(options.model || undefined, options.baseUrl || undefined);
+    return new OllamaProvider(options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0);
   }
   if (normalized === "claude") {
     const key = env.ANTHROPIC_API_KEY;
@@ -30,7 +31,7 @@ export function getProvider(
         "https://console.anthropic.com",
       );
     }
-    return new ClaudeProvider(key, options.model || undefined);
+    return new ClaudeProvider(key, options.model || undefined, options.temperature ?? 0);
   }
   if (normalized === "gemini") {
     const key = env.GEMINI_API_KEY;
@@ -41,7 +42,7 @@ export function getProvider(
         "https://aistudio.google.com/apikey",
       );
     }
-    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined);
+    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0);
   }
   if (normalized === "openai-compatible") {
     const key = env.OPENAI_API_KEY;
@@ -56,6 +57,7 @@ export function getProvider(
       key,
       options.model || undefined,
       options.baseUrl || undefined,
+      options.temperature ?? 0,
     );
   }
   throw ERRORS.unknownProvider(name);
@@ -76,7 +78,7 @@ export function getAgentProvider(
         "https://console.anthropic.com",
       );
     }
-    return new ClaudeProvider(key, options.model || undefined);
+    return new ClaudeProvider(key, options.model || undefined, options.temperature ?? 0);
   }
   if (normalized === "gemini") {
     const key = env.GEMINI_API_KEY;
@@ -87,7 +89,7 @@ export function getAgentProvider(
         "https://aistudio.google.com/apikey",
       );
     }
-    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined);
+    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0);
   }
   throw ERRORS.agentUnsupported(name);
 }
