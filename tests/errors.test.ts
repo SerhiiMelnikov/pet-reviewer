@@ -36,4 +36,10 @@ describe("ERRORS", () => {
     expect(ERRORS.cliTemperature("nope").code).toBe(EErrorCode.CliTemperature);
     expect(ERRORS.cliTemperature("nope").message).toContain("--temperature");
   });
+
+  it("builds the base+commit error", () => {
+    expect(ERRORS.cliBaseCommit().code).toBe(EErrorCode.CliBaseCommit);
+    expect(ERRORS.cliBaseCommit().message).toContain("--base");
+    expect(ERRORS.cliBaseCommit().message).toContain("--commit");
+  });
 });

@@ -23,6 +23,7 @@ export enum EErrorCode {
   CliSkipCategory = "6.2",
   CliMaxSteps = "6.3",
   CliTemperature = "6.4",
+  CliBaseCommit = "6.5",
   AgentUnsupported = "7.1",
 }
 
@@ -138,6 +139,11 @@ export const ERRORS = {
     new ReviewerError(EErrorCode.CliMaxSteps, `Invalid --max-steps "${value}". Use a positive integer.`),
   cliTemperature: (value: string) =>
     new ReviewerError(EErrorCode.CliTemperature, `Invalid --temperature "${value}". Use a number between 0 and 1.`),
+  cliBaseCommit: () =>
+    new ReviewerError(
+      EErrorCode.CliBaseCommit,
+      "--commit cannot be combined with --base: --base reviews committed branch changes, while --commit commits uncommitted working-tree changes.",
+    ),
 
   // 7.x — agent mode
   agentUnsupported: (provider: string) =>
