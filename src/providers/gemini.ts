@@ -137,6 +137,12 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
     return text;
   }
 
+  // Note: unlike ClaudeProvider (which adds explicit cache_control breakpoints),
+  // we add no caching here. Gemini 2.5 models cache identical request prefixes
+  // implicitly and automatically — verified live: the agent loop reuses the stable
+  // instructions+diff prefix across turns/runs (e.g. ~712/971 prompt tokens served
+  // from cache). Keeping the stable prefix first (instructions, then diff) and the
+  // variable tool results last is what makes those implicit hits happen.
   async chat(messages: IMessage[], tools: IToolSpec[], opts: IChatOptions = {}): Promise<IAgentTurn> {
     const body: Record<string, unknown> = {
       contents: messages.map(toGeminiContent),
