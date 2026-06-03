@@ -27,6 +27,7 @@ export interface IReviewerConfig {
     skip?: TCategory[];
   };
   rules?: IRule[];
+  temperature?: number;
 }
 
 export interface IResolvedSettings {
@@ -37,6 +38,7 @@ export interface IResolvedSettings {
   blockLevel: TSeverity;
   skip: TCategory[];
   rules: IRule[];
+  temperature: number;
 }
 
 export function validateConfig(raw: unknown): IReviewerConfig {
@@ -90,6 +92,14 @@ export function validateConfig(raw: unknown): IReviewerConfig {
     });
   }
 
+  const temperature = config.temperature;
+  if (
+    temperature !== undefined &&
+    (typeof temperature !== "number" || Number.isNaN(temperature) || temperature < 0 || temperature > 1)
+  ) {
+    throw ERRORS.configTemperature(CONFIG_FILENAME, String(temperature));
+  }
+
   return config;
 }
 
@@ -115,6 +125,7 @@ export interface ICliFlags {
   baseUrl?: string;
   blockLevel?: TSeverity;
   skip?: TCategory[];
+  temperature?: number;
 }
 
 export function resolveSettings(
@@ -150,5 +161,6 @@ export function resolveSettings(
     blockLevel: cli.blockLevel ?? config.commit?.blockLevel ?? DEFAULT_BLOCK_LEVEL,
     skip: cli.skip ?? config.commit?.skip ?? [],
     rules: config.rules ?? [],
+    temperature: cli.temperature ?? config.temperature ?? 0,
   };
 }
