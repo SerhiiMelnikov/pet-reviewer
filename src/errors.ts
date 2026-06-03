@@ -24,6 +24,8 @@ export enum EErrorCode {
   CliMaxSteps = "6.3",
   CliTemperature = "6.4",
   CliBaseCommit = "6.5",
+  CliFailOn = "6.6",
+  CliFailOnCommit = "6.7",
   AgentUnsupported = "7.1",
 }
 
@@ -143,6 +145,13 @@ export const ERRORS = {
     new ReviewerError(
       EErrorCode.CliBaseCommit,
       "--commit cannot be combined with --base: --base reviews committed branch changes, while --commit commits uncommitted working-tree changes.",
+    ),
+  cliFailOn: (value: string, allowed: string) =>
+    new ReviewerError(EErrorCode.CliFailOn, `Invalid --fail-on "${value}". Use one of: ${allowed}.`),
+  cliFailOnCommit: () =>
+    new ReviewerError(
+      EErrorCode.CliFailOnCommit,
+      "--fail-on cannot be combined with --commit: --commit commits when nothing blocks, while --fail-on only sets a non-zero exit code (for CI) and never commits.",
     ),
 
   // 7.x — agent mode

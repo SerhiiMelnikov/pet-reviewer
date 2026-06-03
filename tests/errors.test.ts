@@ -42,4 +42,12 @@ describe("ERRORS", () => {
     expect(ERRORS.cliBaseCommit().message).toContain("--base");
     expect(ERRORS.cliBaseCommit().message).toContain("--commit");
   });
+
+  it("builds the fail-on errors", () => {
+    expect(ERRORS.cliFailOn("hot", "critical, warning, nit").code).toBe(EErrorCode.CliFailOn);
+    expect(ERRORS.cliFailOn("hot", "critical, warning, nit").message).toContain("--fail-on");
+    expect(ERRORS.cliFailOnCommit().code).toBe(EErrorCode.CliFailOnCommit);
+    expect(ERRORS.cliFailOnCommit().message).toContain("--fail-on");
+    expect(ERRORS.cliFailOnCommit().message).toContain("--commit");
+  });
 });

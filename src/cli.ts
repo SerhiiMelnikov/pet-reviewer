@@ -48,6 +48,12 @@ function parseTemperature(value?: string): number | undefined {
   return n;
 }
 
+function parseFailOn(value?: string): TSeverity | undefined {
+  if (value === undefined) return undefined;
+  if ((SEVERITIES as string[]).includes(value)) return value as TSeverity;
+  throw ERRORS.cliFailOn(value, SEVERITIES.join(", "));
+}
+
 // Maps the resolved API key to the env-var name the chosen provider expects.
 const PROVIDER_ENV_VAR: Record<string, string> = {
   gemini: "GEMINI_API_KEY",
@@ -72,6 +78,7 @@ interface IReviewOpts {
   maxSteps?: string;
   temperature?: string;
   base?: string;
+  failOn?: string;
 }
 
 async function runReview(opts: IReviewOpts): Promise<void> {
@@ -86,12 +93,17 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   let cliBlockLevel: TSeverity | undefined;
   let cliSkip: TCategory[] | undefined;
   let cliTemperature: number | undefined;
+  let cliFailOn: TSeverity | undefined;
   try {
     cliBlockLevel = opts.blockLevel ? parseBlockLevel(opts.blockLevel) : undefined;
     cliSkip = opts.skip ? parseSkip(opts.skip) : undefined;
     cliTemperature = parseTemperature(opts.temperature);
+    cliFailOn = parseFailOn(opts.failOn);
     if (opts.base && opts.commit) {
       throw ERRORS.cliBaseCommit();
+    }
+    if (opts.commit && opts.failOn) {
+      throw ERRORS.cliFailOnCommit();
     }
   } catch (err) {
     console.error(pc.red((err as Error).message));
@@ -209,6 +221,15 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       process.exit(1);
     }
     console.log(pc.green(`\n✓ Committed: ${review.commitMessage}`));
+  } else if (cliFailOn) {
+    const { blockers } = decideCommit(review.findings, {
+      blockLevel: cliFailOn,
+      skip: settings.skip,
+    });
+    if (blockers.length > 0) {
+      console.error(pc.red(`\n✗ ${blockers.length} finding(s) at or above "${cliFailOn}".`));
+      process.exit(1);
+    }
   }
 }
 
@@ -243,6 +264,7 @@ export async function run(): Promise<void> {
     .option("--max-steps <n>", "max agent tool-use steps (default 12)")
     .option("--temperature <n>", "sampling temperature 0..1 (default 0, deterministic)")
     .option("--base <ref>", "review committed changes vs this base ref (git diff <ref>...HEAD)")
+    .option("--fail-on <level>", "exit non-zero if any finding is at/above this severity (CI gate, no commit)")
     .action(runReview);
 
   await program.parseAsync();

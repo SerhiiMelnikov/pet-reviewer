@@ -1,38 +1,134 @@
 # pet-reviewer
 
-AI code reviewer CLI. It reads your `git diff`, asks an LLM (Claude, Gemini, or a
-local Ollama model) to review it, prints structured findings, and can gate a
-commit on the result.
+AI code reviewer for your terminal. It reads your `git diff`, asks an LLM (Claude,
+Gemini, a local Ollama model, or any OpenAI-compatible API) to review it, prints
+structured findings grouped by file, and can block a commit — or fail CI — when
+something serious turns up.
 
-## Install
-
-```bash
-npm install -D pet-reviewer
-npx pet-reviewer init      # creates reviewer.config.js
-```
-
-Set your API key in the environment (e.g. via a `.env` file):
+## Quickstart (60 seconds)
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...     # for Claude
-GEMINI_API_KEY=...               # for Gemini
+npm install -D pet-reviewer            # add it to your project
+export ANTHROPIC_API_KEY=sk-ant-...    # or GEMINI_API_KEY / OPENAI_API_KEY — see Providers
+npx pet-reviewer init                  # write a starter reviewer.config.js
+# ...make some code changes...
+npx pet-reviewer                       # review your uncommitted changes
 ```
+
+`init` scaffolds a `reviewer.config.js` you can edit; the bare `pet-reviewer` command
+reviews `git diff HEAD` (staged + unstaged) and prints findings. Add `--commit` to also
+create a commit when nothing blocks. Ollama needs no key (it runs locally).
+
+## Example output
+
+```text
+$ npx pet-reviewer
+
+src/auth.ts
+  🔴 [security] line 42
+     Password compared with == allows type juggling; use a constant-time compare.
+     ↳ Replace `if (input == stored)` with `crypto.timingSafeEqual(...)`.
+  🟡 [bug] line 88
+     `findUser` may return undefined; the caller dereferences it without a guard.
+     ↳ Add `if (!user) return null;` before using `user.id`.
+
+src/utils.ts
+  🔵 [style] —
+     Comment above `parseDate` is not in English.
+     ↳ Translate it to English.
+
+Total findings: 3
+```
+
+Each finding shows a **severity** icon (🔴 critical, 🟡 warning, 🔵 nit), the
+**category** in brackets, and the `file` + `line` (`—` when not tied to a line). The
+next line states the problem; the dimmed `↳` line is a suggested fix. Findings are
+grouped by file with a total at the end. No issues → `✓ No issues found — clean!`.
+
+## How it works
+
+```
+git diff  ──►  build prompt  ──►  LLM (your provider)
+                                      │
+                              structured JSON findings
+                                      │
+   gate  ◄──────  render  ◄──────  parse & normalize
+   (--commit / --fail-on)
+```
+
+1. Collect the diff: `git diff HEAD` (uncommitted), or `git diff <base>...HEAD` with
+   `--base` (a branch's changes, the PR diff).
+2. Build a prompt and send it to your chosen provider.
+3. The model returns structured findings (file, line, severity, category, message,
+   suggestion).
+4. The response is schema-validated — malformed findings are repaired or dropped, so a
+   broken reply never crashes the run or slips past the gate.
+5. Findings are printed. Optionally a gate runs: `--commit` commits when nothing blocks,
+   `--fail-on` exits non-zero for CI.
+
+**Single-shot (default)** makes one model call on the diff — fast and cheap.
+**Agent mode (`--agent`)** runs a tool-use loop where the model reads files, greps, and
+lists directories to gather context beyond the diff before submitting — deeper and more
+cross-file, but slower and costlier. See [Agent mode](#agent-mode).
 
 ## Usage
 
-The reviewer reads `git diff HEAD` (staged + unstaged changes).
+By default the reviewer reads `git diff HEAD` (staged + unstaged changes).
 
 ```bash
-npx pet-reviewer                 # review only
-npx pet-reviewer --commit        # review, then commit if nothing blocks
-npx pet-reviewer --provider gemini
+npx pet-reviewer                       # review uncommitted changes
+npx pet-reviewer --commit              # review, then commit if nothing blocks
+npx pet-reviewer --provider gemini     # use a different provider
+npx pet-reviewer --agent               # agentic review (Claude or Gemini)
+npx pet-reviewer --base origin/main --fail-on warning   # CI: review a branch, fail on findings
 ```
 
-Flags (override config): `--provider`, `--model`, `--base-url`, `--commit`,
-`--block-level <critical|warning|nit>`, `--skip <categories>`, `--agent`,
-`--max-steps <n>`, `--temperature <0..1>`, `--base <ref>`.
+| Flag | Purpose |
+|------|---------|
+| `--provider <name>` | `claude` \| `gemini` \| `openai-compatible` \| `ollama` |
+| `--model <name>` | model id (overrides config / default) |
+| `--base-url <url>` | endpoint (Ollama or an OpenAI-compatible service) |
+| `--commit` | commit if nothing blocks |
+| `--block-level <critical\|warning\|nit>` | severity that blocks `--commit` |
+| `--skip <categories>` | comma-separated categories that never block |
+| `--agent` | agentic review (reads files, greps, lists dirs) |
+| `--max-steps <n>` | max agent tool-use steps (default 12) |
+| `--temperature <0..1>` | sampling temperature (default 0, deterministic) |
+| `--base <ref>` | review `git diff <ref>...HEAD` (a branch's committed changes) |
+| `--fail-on <level>` | exit non-zero if any finding is at/above this severity (CI gate) |
 
-## Agent mode (experimental)
+`npx pet-reviewer init` scaffolds a `reviewer.config.js` — see [Configuration](#configuration).
+
+## Providers & models
+
+| Provider | Runs | API key (env var) | Default model | Pick another with |
+|----------|------|-------------------|---------------|-------------------|
+| claude | cloud (Anthropic) | `ANTHROPIC_API_KEY` | `claude-haiku-4-5-20251001` | `--model` or config |
+| gemini | cloud (Google) | `GEMINI_API_KEY` | `gemini-2.5-flash` | `--model` or config |
+| openai-compatible | cloud (OpenAI & compatible) | `OPENAI_API_KEY` | `gpt-4o-mini` | `--model` or config |
+| ollama | local machine | none | `llama3.2` | `--model` or config |
+
+Example models: Claude — `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`.
+Gemini — `gemini-2.5-flash`, `gemini-2.5-pro`. Ollama — any model you have
+pulled, e.g. `llama3.2`, `qwen2.5-coder`.
+
+Gemini and Claude run in the cloud — you only need an API key, nothing to
+install. Ollama runs locally; install it and `ollama pull <model>` first. Get a
+Gemini key at https://aistudio.google.com/apikey (generous free tier) and a Claude key
+at https://console.anthropic.com.
+
+`openai-compatible` speaks the OpenAI `/chat/completions` format, so one provider
+covers many services — point `baseUrl` at the one you want and set `apiKey` to
+its key:
+
+- OpenAI — `https://api.openai.com/v1`
+- OpenRouter — `https://openrouter.ai/api/v1`
+- Groq — `https://api.groq.com/openai/v1`
+- Together — `https://api.together.xyz/v1`
+- DeepSeek — `https://api.deepseek.com/v1`
+- LM Studio (local) — `http://localhost:1234/v1`
+
+## Agent mode
 
 By default the reviewer makes a single model call on your diff. With `--agent` it
 runs an **agentic loop** instead: the model uses read-only tools to gather context
@@ -64,34 +160,6 @@ npx pet-reviewer --agent --max-steps 20
   partial review (marked incomplete) instead of failing. Raise `--max-steps` for a
   fuller pass on large diffs.
 
-## Providers & models
-
-| Provider | Runs | API key (env var) | Default model | Pick another with |
-|----------|------|-------------------|---------------|-------------------|
-| claude | cloud (Anthropic) | `ANTHROPIC_API_KEY` | `claude-haiku-4-5-20251001` | `--model` or config |
-| gemini | cloud (Google) | `GEMINI_API_KEY` | `gemini-2.5-flash` | `--model` or config |
-| openai-compatible | cloud (OpenAI & compatible) | `OPENAI_API_KEY` | `gpt-4o-mini` | `--model` or config |
-| ollama | local machine | none | `llama3.2` | `--model` or config |
-
-Example models: Claude — `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`.
-Gemini — `gemini-2.5-flash`, `gemini-2.5-pro`. Ollama — any model you have
-pulled, e.g. `llama3.2`, `qwen2.5-coder`.
-
-Gemini and Claude run in the cloud — you only need an API key, nothing to
-install. Ollama runs locally; install it and `ollama pull <model>` first. Get a
-Gemini key at https://aistudio.google.com/apikey (generous free tier).
-
-`openai-compatible` speaks the OpenAI `/chat/completions` format, so one provider
-covers many services — point `baseUrl` at the one you want and set `apiKey` to
-its key:
-
-- OpenAI — `https://api.openai.com/v1` (`OPENAI_API_KEY`)
-- OpenRouter — `https://openrouter.ai/api/v1` (`process.env.OPENROUTER_API_KEY`)
-- Groq — `https://api.groq.com/openai/v1` (`process.env.GROQ_API_KEY`)
-- Together — `https://api.together.xyz/v1`
-- DeepSeek — `https://api.deepseek.com/v1`
-- LM Studio (local) — `http://localhost:1234/v1`
-
 ## Severity levels
 
 Every finding has one of three severities:
@@ -102,10 +170,10 @@ Every finding has one of three severities:
 | `warning` | Should fix — likely problems or bad practice. |
 | `nit` | Minor — style, naming, optional polish. |
 
-Severities drive the commit gate. With `--commit`, a finding **blocks** the
-commit when its severity is at or above `commit.blockLevel` (rank order:
-`nit` < `warning` < `critical`). Categories listed in `commit.skip` never block,
-even at `critical`.
+Severities drive the gate. With `--commit`, a finding **blocks** the commit when its
+severity is at or above `commit.blockLevel`; with `--fail-on <level>`, the process exits
+non-zero when a finding is at or above `<level>` (rank order: `nit` < `warning` <
+`critical`). Categories listed in `commit.skip` never block, even at `critical`.
 
 ## Configuration
 
@@ -155,7 +223,8 @@ What each setting affects:
   consistent, repeatable reviews; higher values add variety. CLI `--temperature`
   overrides it.
 - **`commit.blockLevel`** — minimum severity that blocks `--commit`.
-- **`commit.skip`** — categories that never block (still shown in output).
+- **`commit.skip`** — categories that never block (still shown in output); also
+  respected by `--fail-on`.
 - **`rules`** — your own review criteria; violations become `custom` findings
   with the severity you set, so they participate in the gate.
 
@@ -169,9 +238,48 @@ built-in default `gemini-2.5-flash`.
 
 `rules` lets you add project-specific review criteria. A violation becomes a
 finding with category `custom` and the severity you set, so it participates in
-the commit gate (block it, or `skip: ["custom"]` to allow it).
+the gate (block it, or `skip: ["custom"]` to allow it).
 
 User rules and the diff are passed to the model as clearly-delimited untrusted
 **data**, and the system prompt instructs the model never to follow instructions
 embedded in them. As a backstop, the model's response is schema-validated — a
 broken or hijacked response fails parsing, so nothing is committed.
+
+## Continuous integration & pre-commit
+
+The gate makes pet-reviewer scriptable. **Exit codes:** `0` — success (nothing blocked,
+or committed); `1` — blocked / `--fail-on` triggered, or a configuration/model error.
+
+**Local pre-commit hook (husky)** — reviews your uncommitted changes and blocks the
+commit on serious findings:
+
+```bash
+npx husky init
+echo 'npx pet-reviewer --commit' > .husky/pre-commit
+```
+
+**Gate pull requests in GitHub Actions** — `--base` reviews the branch against the PR's
+base (the diff GitHub shows) and `--fail-on` fails the build on findings. Fetch full
+history so the base ref is available:
+
+```yaml
+name: review
+on: pull_request
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx pet-reviewer --base "origin/${{ github.base_ref }}" --fail-on warning
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+```
+
+There are three mutually-exclusive gate modes: the local commit gate (`--commit`), the
+CI fail gate (`--base … --fail-on`), and plain review (neither).
