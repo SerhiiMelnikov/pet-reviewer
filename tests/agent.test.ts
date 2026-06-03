@@ -61,14 +61,14 @@ describe("runAgent", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("throws when no submit_review happens within maxSteps", async () => {
+  it("returns an empty truncated review when no submit happens within maxSteps", async () => {
     const provider = scripted([
       { toolCalls: [{ id: "t1", name: "list_dir", input: { path: "." } }] },
       { toolCalls: [{ id: "t2", name: "list_dir", input: { path: "." } }] },
     ]);
-    await expect(
-      runAgent("diff", provider, { maxSteps: 2, root: process.cwd() }),
-    ).rejects.toThrow(/did not submit/i);
+    const result = await runAgent("diff", provider, { maxSteps: 2, root: process.cwd() });
+    expect(result.truncated).toBe(true);
+    expect(result.review.findings).toEqual([]);
   });
 });
 
@@ -86,12 +86,14 @@ describe("runAgent forced finalization", () => {
     expect(opts[opts.length - 1]).toEqual({ forceTool: "submit_review" });
   });
 
-  it("throws agentNoSubmit when even the forced submit does not submit", async () => {
+  it("returns an empty truncated review when even the forced submit yields nothing", async () => {
     const provider = scripted([
       { toolCalls: [{ id: "t1", name: "list_dir", input: { path: "." } }] },
     ]);
-    await expect(
-      runAgent("diff", provider, { maxSteps: 1, root: process.cwd() }),
-    ).rejects.toThrow(/did not submit/i);
+    const result = await runAgent("diff", provider, { maxSteps: 1, root: process.cwd() });
+
+    expect(result.truncated).toBe(true);
+    expect(result.review.findings).toEqual([]);
+    expect(result.review.commitMessage).toBe("chore: incomplete agent review");
   });
 });

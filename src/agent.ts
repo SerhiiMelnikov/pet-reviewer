@@ -2,7 +2,6 @@ import { IAgentProvider, IMessage, IAgentTurn, TContentBlock } from "./providers
 import { AGENT_TOOLS, ALL_TOOL_SPECS, SUBMIT_REVIEW_SPEC } from "./tools/index";
 import { normalizeReview, INormalizeResult } from "./normalize";
 import { buildAgentPrompt } from "./prompt";
-import { ERRORS } from "./errors";
 import { IRule } from "./schema";
 
 export interface IAgentOptions {
@@ -101,5 +100,12 @@ export async function runAgent(
   const { finalResult } = await processToolCalls(finalTurn, options.root);
   if (finalResult) return { ...finalResult, truncated: true };
 
-  throw ERRORS.agentNoSubmit(options.maxSteps);
+  // Even the forced submit produced nothing usable — return an empty review rather
+  // than crash, so step exhaustion never leaves the user with nothing. A distinct
+  // commit message keeps git history honest if this is committed with --commit.
+  return {
+    review: { findings: [], commitMessage: "chore: incomplete agent review" },
+    dropped: 0,
+    truncated: true,
+  };
 }

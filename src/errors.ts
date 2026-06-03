@@ -22,7 +22,6 @@ export enum EErrorCode {
   CliSkipCategory = "6.2",
   CliMaxSteps = "6.3",
   AgentUnsupported = "7.1",
-  AgentNoSubmit = "7.2",
 }
 
 export class ReviewerError extends Error {
@@ -136,10 +135,5 @@ export const ERRORS = {
     new ReviewerError(
       EErrorCode.AgentUnsupported,
       `Agent mode supports only the claude and gemini providers. Got "${provider}". Use --provider claude or gemini.`,
-    ),
-  agentNoSubmit: (steps: number) =>
-    new ReviewerError(
-      EErrorCode.AgentNoSubmit,
-      `The agent did not submit a review within ${steps} steps. Try raising --max-steps.`,
     ),
 };
