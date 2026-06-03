@@ -30,7 +30,7 @@ npx pet-reviewer --provider gemini
 
 Flags (override config): `--provider`, `--model`, `--base-url`, `--commit`,
 `--block-level <critical|warning|nit>`, `--skip <categories>`, `--agent`,
-`--max-steps <n>`, `--temperature <0..1>`.
+`--max-steps <n>`, `--temperature <0..1>`, `--base <ref>`.
 
 ## Agent mode (experimental)
 
