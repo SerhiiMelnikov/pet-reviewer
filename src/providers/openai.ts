@@ -10,6 +10,7 @@ export class OpenAICompatibleProvider implements IReviewProvider {
     private apiKey: string,
     readonly model = "gpt-4o-mini",
     readonly baseUrl = "https://api.openai.com/v1",
+    readonly temperature = 0,
     private fetchFn: typeof fetch = fetch,
     private timeoutMs = 180_000,
   ) {}
@@ -28,6 +29,7 @@ export class OpenAICompatibleProvider implements IReviewProvider {
         },
         body: JSON.stringify({
           model: this.model,
+          temperature: this.temperature,
           messages: [{ role: "user", content: prompt }],
         }),
         signal: controller.signal,

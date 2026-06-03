@@ -18,6 +18,7 @@ describe("OpenAICompatibleProvider", () => {
       "KEY",
       "gpt-4o-mini",
       "https://api.openai.com/v1",
+      0,
       fetchFn,
     );
     const result = await provider.review("MY_PROMPT");
@@ -34,7 +35,7 @@ describe("OpenAICompatibleProvider", () => {
 
   it("throws a clear error on a non-ok response", async () => {
     const fetchFn = fakeFetch({}, false, 401);
-    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/401/);
   });
 
@@ -42,7 +43,7 @@ describe("OpenAICompatibleProvider", () => {
     const fetchFn = vi
       .fn()
       .mockRejectedValue(new Error("fetch failed")) as unknown as typeof fetch;
-    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/reach OpenAI/);
   });
 
@@ -52,13 +53,20 @@ describe("OpenAICompatibleProvider", () => {
     const fetchFn = vi
       .fn()
       .mockRejectedValue(abortErr) as unknown as typeof fetch;
-    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/timed out/);
   });
 
   it("throws when the response has no choices", async () => {
     const fetchFn = fakeFetch({ choices: [] });
-    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, fetchFn);
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, 0, fetchFn);
     await expect(provider.review("x")).rejects.toThrow(/no content/i);
+  });
+
+  it("sends temperature in the body", async () => {
+    const fetchFn = fakeFetch({ choices: [{ message: { content: "[]" } }] });
+    const provider = new OpenAICompatibleProvider("KEY", "gpt-4o-mini", "https://api.openai.com/v1", 0, fetchFn);
+    await provider.review("p");
+    expect(JSON.parse((fetchFn as any).mock.calls[0][1].body).temperature).toBe(0);
   });
 });
