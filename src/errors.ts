@@ -15,12 +15,14 @@ export enum EErrorCode {
   ConfigRuleTextLength = "3.8",
   ConfigRuleSeverity = "3.9",
   ConfigLoadFailed = "3.10",
+  ConfigTemperature = "3.11",
   ParseInvalidJson = "4.1",
   ParseSchemaMismatch = "4.2",
   InitConfigExists = "5.1",
   CliBlockLevel = "6.1",
   CliSkipCategory = "6.2",
   CliMaxSteps = "6.3",
+  CliTemperature = "6.4",
   AgentUnsupported = "7.1",
 }
 
@@ -105,6 +107,11 @@ export const ERRORS = {
     ),
   configLoadFailed: (filename: string, detail: string) =>
     new ReviewerError(EErrorCode.ConfigLoadFailed, `Failed to load ${filename}: ${detail}`),
+  configTemperature: (filename: string, value: string) =>
+    new ReviewerError(
+      EErrorCode.ConfigTemperature,
+      `Invalid "temperature" in ${filename}: "${value}". Use a number between 0 and 1.`,
+    ),
 
   // 4.x — parse / model output
   parseInvalidJson: (rawText: string) =>
@@ -129,6 +136,8 @@ export const ERRORS = {
     new ReviewerError(EErrorCode.CliSkipCategory, `Invalid --skip category "${value}". Use any of: ${allowed}`),
   cliMaxSteps: (value: string) =>
     new ReviewerError(EErrorCode.CliMaxSteps, `Invalid --max-steps "${value}". Use a positive integer.`),
+  cliTemperature: (value: string) =>
+    new ReviewerError(EErrorCode.CliTemperature, `Invalid --temperature "${value}". Use a number between 0 and 1.`),
 
   // 7.x — agent mode
   agentUnsupported: (provider: string) =>

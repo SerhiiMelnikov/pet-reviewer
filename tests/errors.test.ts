@@ -29,4 +29,11 @@ describe("ERRORS", () => {
     expect(ERRORS.agentUnsupported("ollama").message).toContain("ollama");
     expect(ERRORS.cliMaxSteps("x").code).toBe(EErrorCode.CliMaxSteps);
   });
+
+  it("builds the temperature errors", () => {
+    expect(ERRORS.configTemperature("reviewer.config.js", "2").code).toBe(EErrorCode.ConfigTemperature);
+    expect(ERRORS.configTemperature("reviewer.config.js", "2").message).toContain("between 0 and 1");
+    expect(ERRORS.cliTemperature("nope").code).toBe(EErrorCode.CliTemperature);
+    expect(ERRORS.cliTemperature("nope").message).toContain("--temperature");
+  });
 });
