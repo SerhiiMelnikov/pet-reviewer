@@ -208,6 +208,42 @@ describe("GeminiProvider.chat", () => {
   });
 });
 
+describe("GeminiProvider thoughtSignature", () => {
+  it("captures thoughtSignature from a functionCall part", async () => {
+    const fetchFn = fakeFetch({
+      candidates: [{ content: { parts: [{ functionCall: { name: "read_file", args: { path: "x.ts" } }, thoughtSignature: "SIG123" }] } }],
+    });
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
+    const turn = await provider.chat([{ role: "user", content: "hi" }], TOOLS);
+    expect(turn.toolCalls[0].signature).toBe("SIG123");
+  });
+
+  it("re-emits thoughtSignature on the functionCall part when replaying a tool_use", async () => {
+    const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
+    const messages: IMessage[] = [
+      { role: "assistant", content: [{ type: "tool_use", id: "read_file__0", name: "read_file", input: { path: "x.ts" }, signature: "SIG123" }] },
+    ];
+    await provider.chat(messages, TOOLS);
+    const body = JSON.parse((fetchFn as any).mock.calls[0][1].body);
+    expect(body.contents[0].parts[0]).toEqual({
+      functionCall: { name: "read_file", args: { path: "x.ts" } },
+      thoughtSignature: "SIG123",
+    });
+  });
+
+  it("emits no thoughtSignature when the tool_use block has none", async () => {
+    const fetchFn = fakeFetch({ candidates: [{ content: { parts: [{ text: "x" }] } }] });
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
+    const messages: IMessage[] = [
+      { role: "assistant", content: [{ type: "tool_use", id: "read_file__0", name: "read_file", input: { path: "x.ts" } }] },
+    ];
+    await provider.chat(messages, TOOLS);
+    const body = JSON.parse((fetchFn as any).mock.calls[0][1].body);
+    expect(body.contents[0].parts[0]).toEqual({ functionCall: { name: "read_file", args: { path: "x.ts" } } });
+  });
+});
+
 describe("GeminiProvider temperature", () => {
   it("puts temperature in generationConfig for review and chat", async () => {
     const reviewFetch = fakeFetch({ candidates: [{ content: { parts: [{ text: "[]" }] } }] });

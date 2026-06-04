@@ -16,12 +16,14 @@ export interface IToolCall {
   id: string;
   name: string;
   input: Record<string, unknown>;
+  // Opaque, provider-specific token round-tripped verbatim (Gemini 3.x thoughtSignature).
+  signature?: string;
 }
 
 // Provider-agnostic conversation blocks (model the tool-use exchange).
 export type TContentBlock =
   | { type: "text"; text: string }
-  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown>; signature?: string }
   | { type: "tool_result"; toolCallId: string; content: string; isError?: boolean };
 
 export interface IMessage {
