@@ -14,7 +14,7 @@ function appendAssistant(messages: IMessage[], turn: IAgentTurn): void {
   const assistantBlocks: TContentBlock[] = [];
   if (turn.text) assistantBlocks.push({ type: "text", text: turn.text });
   for (const tc of turn.toolCalls) {
-    assistantBlocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.input });
+    assistantBlocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.input, signature: tc.signature });
   }
   messages.push({
     role: "assistant",

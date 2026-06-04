@@ -12,6 +12,8 @@ import { ERRORS } from "../errors";
 interface IGeminiPart {
   text?: string;
   functionCall?: { name: string; args?: Record<string, unknown> };
+  // Gemini 3.x: opaque token siblinged to functionCall; must be echoed back next turn.
+  thoughtSignature?: string;
 }
 
 interface IGeminiResponse {
@@ -27,7 +29,11 @@ function decodeName(toolCallId: string): string {
 function toGeminiPart(block: TContentBlock): unknown {
   if (block.type === "text") return { text: block.text };
   if (block.type === "tool_use") {
-    return { functionCall: { name: block.name, args: block.input } };
+    const part: Record<string, unknown> = {
+      functionCall: { name: block.name, args: block.input },
+    };
+    if (block.signature) part.thoughtSignature = block.signature;
+    return part;
   }
   return {
     functionResponse: {
@@ -177,6 +183,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
         id: `${p.functionCall!.name}__${i}`,
         name: p.functionCall!.name,
         input: p.functionCall!.args ?? {},
+        signature: p.thoughtSignature,
       }));
 
     return { text: text || undefined, toolCalls };
