@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runAgent } from "../src/agent";
-import { IAgentProvider, IAgentTurn, IChatOptions } from "../src/providers/types";
+import { IAgentProvider, IAgentTurn, IChatOptions, IMessage, TContentBlock } from "../src/providers/types";
 
 function scripted(turns: IAgentTurn[]): IAgentProvider {
   let i = 0;
@@ -69,6 +69,30 @@ describe("runAgent", () => {
     const result = await runAgent("diff", provider, { maxSteps: 2, root: process.cwd() });
     expect(result.truncated).toBe(true);
     expect(result.review.findings).toEqual([]);
+  });
+});
+
+describe("runAgent signature", () => {
+  it("carries a tool-call signature into the assistant message", async () => {
+    const seen: IMessage[][] = [];
+    let i = 0;
+    const turns: IAgentTurn[] = [
+      { toolCalls: [{ id: "list_dir__0", name: "list_dir", input: { path: "." }, signature: "SIG" }] },
+      { toolCalls: [{ id: "s1", name: "submit_review", input: validReview }] },
+    ];
+    const provider: IAgentProvider = {
+      async chat(messages) {
+        seen.push([...messages]);
+        return turns[i++] ?? { toolCalls: [] };
+      },
+    };
+
+    await runAgent("diff", provider, { maxSteps: 5, root: process.cwd() });
+
+    const secondCall = seen[1];
+    const assistant = secondCall.find((m) => m.role === "assistant")!;
+    const block = (assistant.content as TContentBlock[]).find((b) => b.type === "tool_use")!;
+    expect((block as { signature?: string }).signature).toBe("SIG");
   });
 });
 
