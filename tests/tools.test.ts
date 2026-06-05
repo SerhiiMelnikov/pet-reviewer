@@ -26,9 +26,37 @@ describe("resolveInRoot", () => {
 });
 
 describe("readFileTool", () => {
-  it("reads a file within the root", async () => {
-    expect(await readFileTool.execute({ path: "src/a.ts" }, root)).toBe("hello world");
+  it("reads a whole file as line-numbered output", async () => {
+    expect(await readFileTool.execute({ path: "src/a.ts" }, root)).toBe("1: hello world");
   });
+
+  it("reads only the requested line range, numbered with real line numbers", async () => {
+    writeFileSync(join(root, "src", "multi.ts"), "a\nb\nc\nd\ne");
+    const out = await readFileTool.execute({ path: "src/multi.ts", start_line: 2, end_line: 4 }, root);
+    expect(out).toBe("2: b\n3: c\n4: d");
+  });
+
+  it("clamps end_line past EOF to the last line", async () => {
+    writeFileSync(join(root, "src", "multi.ts"), "a\nb\nc");
+    const out = await readFileTool.execute({ path: "src/multi.ts", start_line: 2, end_line: 99 }, root);
+    expect(out).toBe("2: b\n3: c");
+  });
+
+  it("returns an out-of-range note when start_line is past EOF", async () => {
+    writeFileSync(join(root, "src", "multi.ts"), "a\nb\nc");
+    const out = await readFileTool.execute({ path: "src/multi.ts", start_line: 99 }, root);
+    expect(out).toMatch(/out of range/i);
+    expect(out).toContain("3 lines");
+  });
+
+  it("truncates output longer than the cap", async () => {
+    const big = Array.from({ length: 5000 }, (_, i) => `line ${i}`).join("\n");
+    writeFileSync(join(root, "src", "big.ts"), big);
+    const out = await readFileTool.execute({ path: "src/big.ts" }, root);
+    expect(out).toContain("[truncated,");
+    expect(out.length).toBeLessThan(8200);
+  });
+
   it("throws on a missing file", async () => {
     await expect(readFileTool.execute({ path: "src/missing.ts" }, root)).rejects.toThrow(/not found/i);
   });
