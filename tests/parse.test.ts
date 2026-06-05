@@ -25,6 +25,11 @@ describe("extractJson", () => {
       'Result:\n```json\n{"findings":[],"commitMessage":"x"}\n```\nDone.';
     expect(extractJson(raw)).toBe('{"findings":[],"commitMessage":"x"}');
   });
+
+  it("returns the last json fence when several are present", () => {
+    const raw = '```json\n{"a":1}\n```\nthen\n```json\n{"b":2}\n```';
+    expect(extractJson(raw)).toBe('{"b":2}');
+  });
 });
 
 describe("parseReview", () => {

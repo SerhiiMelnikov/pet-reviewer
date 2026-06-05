@@ -9,7 +9,7 @@ export function makeGrepTool(run: TCommandRunner = defaultRunner): IAgentTool {
       inputSchema: {
         type: "object",
         properties: {
-          pattern: { type: "string", description: "Regular expression pattern to search for (git grep regex)" },
+          pattern: { type: "string", description: "Extended regular expression pattern to search for (git grep -E)" },
           path: { type: "string", description: "Optional path to limit the search" },
         },
         required: ["pattern"],

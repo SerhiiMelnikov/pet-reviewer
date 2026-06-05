@@ -186,6 +186,7 @@ describe("ClaudeProvider temperature retry", () => {
 
     expect(turn.text).toBe("done");
     expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls[0][0]).toHaveProperty("temperature");
     expect(create.mock.calls[1][0]).not.toHaveProperty("temperature");
   });
 
