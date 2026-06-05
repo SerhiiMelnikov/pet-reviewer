@@ -49,6 +49,16 @@ describe("makeGrepTool", () => {
     };
     expect(await makeGrepTool(fakeRun).execute({ pattern: "zzz" }, root)).toMatch(/no matches/i);
   });
+  it("runs git grep with extended regex (-E before -e)", async () => {
+    let captured: string[] = [];
+    const fakeRun = (_cmd: string, args: string[]) => {
+      captured = args;
+      return "src/a.ts:1:hit";
+    };
+    await makeGrepTool(fakeRun).execute({ pattern: "first\\(" }, root);
+    expect(captured).toContain("-E");
+    expect(captured.indexOf("-E")).toBeLessThan(captured.indexOf("-e"));
+  });
 });
 
 describe("listDirTool", () => {
