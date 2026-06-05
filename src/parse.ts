@@ -5,6 +5,10 @@ import { ERRORS } from "./errors";
 // The model may wrap JSON in ```json ... ``` fences or add prose.
 // Extract just the object.
 export function extractJson(rawText: string): string {
+  // Prefer an explicit ```json block — some models (e.g. Gemma) emit a reasoning code
+  // block first and the real JSON in a json-labelled fence later.
+  const jsonFence = rawText.match(/```json\s*([\s\S]*?)```/i);
+  if (jsonFence) return jsonFence[1].trim();
   const fence = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fence) return fence[1].trim();
   const start = rawText.indexOf("{");
