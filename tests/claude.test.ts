@@ -154,3 +154,49 @@ describe("ClaudeProvider temperature", () => {
     expect(create.mock.calls[0][0].temperature).toBe(0.7);
   });
 });
+
+describe("ClaudeProvider temperature retry", () => {
+  it("retries review without temperature on a 400 about temperature", async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error("temperature is deprecated for this model"), { status: 400 }),
+      )
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "[]" }] });
+    const provider = new ClaudeProvider("key", "claude-opus-4-8", 0, { messages: { create } } as any);
+
+    const result = await provider.review("P");
+
+    expect(result).toBe("[]");
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls[0][0]).toHaveProperty("temperature");
+    expect(create.mock.calls[1][0]).not.toHaveProperty("temperature");
+  });
+
+  it("retries chat without temperature on a 400 about temperature", async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error("`temperature` is deprecated for this model."), { status: 400 }),
+      )
+      .mockResolvedValueOnce({ content: [{ type: "text", text: "done" }] });
+    const provider = new ClaudeProvider("key", "claude-opus-4-8", 0, { messages: { create } } as any);
+
+    const turn = await provider.chat([{ role: "user", content: "hi" }], []);
+
+    expect(turn.text).toBe("done");
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls[0][0]).toHaveProperty("temperature");
+    expect(create.mock.calls[1][0]).not.toHaveProperty("temperature");
+  });
+
+  it("rethrows a 400 that is not about temperature", async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error("messages: field required"), { status: 400 }));
+    const provider = new ClaudeProvider("key", "claude-opus-4-8", 0, { messages: { create } } as any);
+
+    await expect(provider.review("P")).rejects.toThrow(/field required/);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+});

@@ -18,6 +18,18 @@ describe("extractJson", () => {
     const rawText = 'blah {"a": 1} end';
     expect(extractJson(rawText)).toBe('{"a": 1}');
   });
+
+  it("prefers a json-labelled fence over an earlier non-json fence", () => {
+    const raw =
+      "Reasoning:\n```typescript\nconst x = { a: 1 };\n```\n" +
+      'Result:\n```json\n{"findings":[],"commitMessage":"x"}\n```\nDone.';
+    expect(extractJson(raw)).toBe('{"findings":[],"commitMessage":"x"}');
+  });
+
+  it("returns the last json fence when several are present", () => {
+    const raw = '```json\n{"a":1}\n```\nthen\n```json\n{"b":2}\n```';
+    expect(extractJson(raw)).toBe('{"b":2}');
+  });
 });
 
 describe("parseReview", () => {
@@ -25,6 +37,13 @@ describe("parseReview", () => {
     const result = parseReview(JSON.stringify(review));
     expect(result.review).toEqual(review);
     expect(result.dropped).toBe(0);
+  });
+
+  it("parses a review that follows a reasoning code block (Gemma-shaped)", () => {
+    const raw =
+      "Thinking...\n```typescript\nfoo();\n```\n" +
+      '```json\n{"findings":[],"commitMessage":"chore: x"}\n```';
+    expect(parseReview(raw).review.commitMessage).toBe("chore: x");
   });
 
   it("parses a review with no findings", () => {

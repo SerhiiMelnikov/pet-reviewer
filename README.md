@@ -112,6 +112,18 @@ Example models: Claude — `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`.
 Gemini — `gemini-2.5-flash`, `gemini-2.5-pro`. Ollama — any model you have
 pulled, e.g. `llama3.2`, `qwen2.5-coder`.
 
+### Tested models
+
+These models are verified to work (review + agent unless noted):
+
+| Provider | Verified models |
+|----------|-----------------|
+| Claude   | `opus` 4.0–4.8 · `sonnet` 4.0 / 4.5 / 4.6 · `haiku` 4.5 |
+| Gemini   | `gemini-2.5-flash` · `-flash-lite` · `gemini-3-flash` · `gemini-3.1-flash-lite` · `gemini-3.5-flash` · `gemma-4` (review only) |
+
+> Using a model that isn't listed, or one that doesn't work for you?
+> [Open an issue](https://github.com/SerhiiMelnikov/pet-reviewer/issues).
+
 Gemini and Claude run in the cloud — you only need an API key, nothing to
 install. Ollama runs locally; install it and `ollama pull <model>` first. Get a
 Gemini key at https://aistudio.google.com/apikey (generous free tier) and a Claude key
