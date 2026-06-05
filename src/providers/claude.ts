@@ -65,8 +65,25 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
     this.client = client ?? (new Anthropic({ apiKey }) as unknown as IMessagesClient);
   }
 
+  // Anthropic deprecates `temperature` on some models (opus-4-7/4-8): they 400 with a
+  // message mentioning temperature. Try with it; on that specific 400, retry without it.
+  private async createWithTempRetry(body: Record<string, unknown>) {
+    try {
+      return await this.client.messages.create(body);
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      const message = (err as { message?: string })?.message ?? "";
+      if (status === 400 && /temperature/i.test(message)) {
+        const { temperature, ...rest } = body;
+        void temperature;
+        return await this.client.messages.create(rest);
+      }
+      throw err;
+    }
+  }
+
   async review(prompt: string): Promise<string> {
-    const msg = await this.client.messages.create({
+    const msg = await this.createWithTempRetry({
       model: this.model,
       max_tokens: 2048,
       temperature: this.temperature,
@@ -100,7 +117,7 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
       body.tool_choice = { type: "tool", name: opts.forceTool };
     }
 
-    const res = await this.client.messages.create(body);
+    const res = await this.createWithTempRetry(body);
     const text = res.content
       .filter((b) => b.type === "text")
       .map((b) => b.text ?? "")
