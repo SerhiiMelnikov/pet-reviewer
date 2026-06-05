@@ -45,7 +45,10 @@ export const readFileTool: IAgentTool = {
       .join("\n");
 
     if (rendered.length > READ_FILE_MAX_CHARS) {
-      return `${rendered.slice(0, READ_FILE_MAX_CHARS)}\n... [truncated, ${rendered.length - READ_FILE_MAX_CHARS} more chars]`;
+      // Cut on a line boundary so the last visible line isn't a garbled half-line.
+      const cutAt = rendered.lastIndexOf("\n", READ_FILE_MAX_CHARS);
+      const safe = cutAt > 0 ? rendered.slice(0, cutAt) : rendered.slice(0, READ_FILE_MAX_CHARS);
+      return `${safe}\n... [truncated, ${rendered.length - safe.length} more chars]`;
     }
     return rendered;
   },

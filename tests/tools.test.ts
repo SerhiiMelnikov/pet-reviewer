@@ -56,6 +56,7 @@ describe("readFileTool", () => {
     expect(out).toContain("[truncated,");
     expect(out.length).toBeLessThan(8200);
   });
+
   it("throws on a missing file", async () => {
     await expect(readFileTool.execute({ path: "src/missing.ts" }, root)).rejects.toThrow(/not found/i);
   });
