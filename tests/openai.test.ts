@@ -160,6 +160,18 @@ describe("OpenAICompatibleProvider.chat", () => {
     ]);
   });
 
+  it("marks failed tool results with an [ERROR] prefix", async () => {
+    const fetchFn = fakeFetch({ choices: [{ message: { content: "ok" } }] });
+    const messages: IMessage[] = [
+      { role: "user", content: [
+        { type: "tool_result", toolCallId: "call_e", content: "boom", isError: true },
+      ] },
+    ];
+    await chatProvider(fetchFn).chat(messages, TOOLS);
+    const sent = JSON.parse((fetchFn as any).mock.calls[0][1].body).messages;
+    expect(sent[0]).toEqual({ role: "tool", tool_call_id: "call_e", content: "[ERROR] boom" });
+  });
+
   it("sets content null when an assistant turn has only tool calls", async () => {
     const fetchFn = fakeFetch({ choices: [{ message: { content: "ok" } }] });
     const messages: IMessage[] = [

@@ -46,7 +46,7 @@ export const ERRORS = {
   unknownProvider: (name: string) =>
     new ReviewerError(
       EErrorCode.UnknownProvider,
-      `Unknown provider: ${name}. Available: claude, ollama, gemini`,
+      `Unknown provider: ${name}. Available: claude, ollama, gemini, openai-compatible`,
     ),
 
   // 2.x — provider runtime

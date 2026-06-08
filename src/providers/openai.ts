@@ -24,6 +24,7 @@ function safeParseArgs(raw: string | undefined): Record<string, unknown> {
   if (!raw) return {};
   try {
     const parsed = JSON.parse(raw);
+    // Non-object JSON (array, primitive) is not a valid args map — treat as empty.
     return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
   } catch {
     return {};
@@ -63,8 +64,13 @@ function toOpenAIMessages(messages: IMessage[]): unknown[] {
     // role:"user" with content blocks → one role:"tool" message per tool_result.
     for (const block of message.content) {
       if (block.type === "tool_result") {
-        out.push({ role: "tool", tool_call_id: block.toolCallId, content: block.content });
+        // OpenAI has no is_error field on tool messages, so flag failures inline
+        // (same idea as Gemini's { error } wrapper) — otherwise the model can't tell
+        // a failed tool call from a successful one.
+        const content = block.isError ? `[ERROR] ${block.content}` : block.content;
+        out.push({ role: "tool", tool_call_id: block.toolCallId, content });
       } else if (block.type === "text") {
+        // Defensive fallback: the agent loop never sends user text blocks.
         out.push({ role: "user", content: block.text });
       }
     }
