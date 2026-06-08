@@ -46,7 +46,7 @@ export const ERRORS = {
   unknownProvider: (name: string) =>
     new ReviewerError(
       EErrorCode.UnknownProvider,
-      `Unknown provider: ${name}. Available: claude, ollama, gemini`,
+      `Unknown provider: ${name}. Available: claude, ollama, gemini, openai-compatible`,
     ),
 
   // 2.x — provider runtime
@@ -158,6 +158,6 @@ export const ERRORS = {
   agentUnsupported: (provider: string) =>
     new ReviewerError(
       EErrorCode.AgentUnsupported,
-      `Agent mode supports only the claude and gemini providers. Got "${provider}". Use --provider claude or gemini.`,
+      `Agent mode supports only the claude, gemini, and openai-compatible providers. Got "${provider}". Use --provider claude, gemini, or openai-compatible.`,
     ),
 };
