@@ -1,8 +1,16 @@
 import { IReviewProvider } from "./types";
 import { ERRORS } from "../errors";
 
+interface IOpenAIToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
 interface IOpenAIResponse {
-  choices?: Array<{ message?: { content?: string } }>;
+  choices?: Array<{
+    message?: { content?: string | null; tool_calls?: IOpenAIToolCall[] };
+  }>;
 }
 
 export class OpenAICompatibleProvider implements IReviewProvider {
@@ -15,7 +23,9 @@ export class OpenAICompatibleProvider implements IReviewProvider {
     private timeoutMs = 180_000,
   ) {}
 
-  async review(prompt: string): Promise<string> {
+  // Shared transport: POST a request body to /chat/completions, map errors,
+  // return the parsed response. Used by both review() and chat().
+  private async request(body: unknown): Promise<IOpenAIResponse> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -27,11 +37,7 @@ export class OpenAICompatibleProvider implements IReviewProvider {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
         },
-        body: JSON.stringify({
-          model: this.model,
-          temperature: this.temperature,
-          messages: [{ role: "user", content: prompt }],
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
     } catch (err) {
@@ -55,9 +61,17 @@ export class OpenAICompatibleProvider implements IReviewProvider {
       );
     }
 
-    const data = (await res.json()) as IOpenAIResponse;
+    return (await res.json()) as IOpenAIResponse;
+  }
+
+  async review(prompt: string): Promise<string> {
+    const data = await this.request({
+      model: this.model,
+      temperature: this.temperature,
+      messages: [{ role: "user", content: prompt }],
+    });
     const content = data.choices?.[0]?.message?.content;
-    if (content === undefined) {
+    if (content === undefined || content === null) {
       throw ERRORS.providerEmptyResponse("OpenAI");
     }
     return content;
