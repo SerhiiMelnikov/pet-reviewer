@@ -79,7 +79,7 @@ By default the reviewer reads `git diff HEAD` (staged + unstaged changes).
 npx pet-reviewer                       # review uncommitted changes
 npx pet-reviewer --commit              # review, then commit if nothing blocks
 npx pet-reviewer --provider gemini     # use a different provider
-npx pet-reviewer --agent               # agentic review (Claude or Gemini)
+npx pet-reviewer --agent               # agentic review (Claude, Gemini, or OpenAI-compatible)
 npx pet-reviewer --base origin/main --fail-on warning   # CI: review a branch, fail on findings
 ```
 
@@ -153,8 +153,10 @@ npx pet-reviewer --agent --commit
 npx pet-reviewer --agent --max-steps 20
 ```
 
-- **Providers:** Claude (the default) and Gemini support agent mode. `ollama` and
-  `openai-compatible` stay single-shot for now.
+- **Providers:** Claude (the default) and Gemini fully support agent mode.
+  `openai-compatible` also works with `--agent` (**experimental** — verified against
+  Groq and Fireworks; any OpenAI-compatible endpoint with tool-calling should work).
+  `ollama` stays single-shot for now.
 - **Model choice matters:** the loop makes several sequential calls with growing
   context, so a weak model can be slow — you may wait a long time for a result.
   Prefer a stronger model for `--agent` (e.g. `claude-sonnet-4-6` or
