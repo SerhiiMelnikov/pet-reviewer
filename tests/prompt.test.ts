@@ -47,12 +47,12 @@ describe("buildPrompt", () => {
   });
 });
 
-describe("buildAgentPrompt step budget", () => {
+describe("buildAgentPrompt agent guidance", () => {
   it("nudges the agent to submit early due to a limited step budget", () => {
     expect(buildAgentPrompt("diff")).toContain("limited step budget");
   });
 
   it("nudges the agent to batch multiple tool calls in one turn", () => {
-    expect(buildAgentPrompt("diff")).toMatch(/multiple tools in the SAME turn/i);
+    expect(buildAgentPrompt("diff")).toContain("multiple tools in the SAME turn");
   });
 });
