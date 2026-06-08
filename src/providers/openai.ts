@@ -1,4 +1,11 @@
-import { IReviewProvider } from "./types";
+import {
+  IReviewProvider,
+  IAgentProvider,
+  IAgentTurn,
+  IMessage,
+  IToolSpec,
+  IChatOptions,
+} from "./types";
 import { ERRORS } from "../errors";
 
 interface IOpenAIToolCall {
@@ -13,7 +20,59 @@ interface IOpenAIResponse {
   }>;
 }
 
-export class OpenAICompatibleProvider implements IReviewProvider {
+function safeParseArgs(raw: string | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+// One internal IMessage can expand into several OpenAI messages: a user message
+// carrying an array of tool_result blocks becomes N separate role:"tool" messages,
+// because OpenAI matches each result to its own tool_call_id (it has no bundled form).
+function toOpenAIMessages(messages: IMessage[]): unknown[] {
+  const out: unknown[] = [];
+  for (const message of messages) {
+    if (typeof message.content === "string") {
+      out.push({ role: message.role, content: message.content });
+      continue;
+    }
+    if (message.role === "assistant") {
+      let text = "";
+      const toolCalls: IOpenAIToolCall[] = [];
+      for (const block of message.content) {
+        if (block.type === "text") {
+          text += block.text;
+        } else if (block.type === "tool_use") {
+          toolCalls.push({
+            id: block.id,
+            type: "function",
+            function: { name: block.name, arguments: JSON.stringify(block.input) },
+          });
+        }
+      }
+      // OpenAI requires content:null (not "") on an assistant message with tool_calls.
+      const assistant: Record<string, unknown> = { role: "assistant", content: text || null };
+      if (toolCalls.length) assistant.tool_calls = toolCalls;
+      out.push(assistant);
+      continue;
+    }
+    // role:"user" with content blocks → one role:"tool" message per tool_result.
+    for (const block of message.content) {
+      if (block.type === "tool_result") {
+        out.push({ role: "tool", tool_call_id: block.toolCallId, content: block.content });
+      } else if (block.type === "text") {
+        out.push({ role: "user", content: block.text });
+      }
+    }
+  }
+  return out;
+}
+
+export class OpenAICompatibleProvider implements IReviewProvider, IAgentProvider {
   constructor(
     private apiKey: string,
     readonly model = "gpt-4o-mini",
@@ -75,5 +134,34 @@ export class OpenAICompatibleProvider implements IReviewProvider {
       throw ERRORS.providerEmptyResponse("OpenAI");
     }
     return content;
+  }
+
+  async chat(messages: IMessage[], tools: IToolSpec[], opts: IChatOptions = {}): Promise<IAgentTurn> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      temperature: this.temperature,
+      messages: toOpenAIMessages(messages),
+      tools: tools.map((t) => ({
+        type: "function",
+        function: { name: t.name, description: t.description, parameters: t.inputSchema },
+      })),
+    };
+    if (opts.forceTool) {
+      body.tool_choice = { type: "function", function: { name: opts.forceTool } };
+    }
+
+    const data = await this.request(body);
+    const message = data.choices?.[0]?.message;
+    const text = message?.content || undefined;
+    const toolCalls = (message?.tool_calls ?? []).map((tc) => ({
+      id: tc.id,
+      name: tc.function.name,
+      input: safeParseArgs(tc.function.arguments),
+    }));
+
+    if (text === undefined && toolCalls.length === 0) {
+      throw ERRORS.providerEmptyResponse("OpenAI");
+    }
+    return { text, toolCalls };
   }
 }
