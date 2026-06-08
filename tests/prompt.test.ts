@@ -36,14 +36,16 @@ describe("buildPrompt", () => {
     expect(buildPrompt("x", [])).not.toContain("=== USER RULES");
   });
 
-  it("instructs to always respond in English", () => {
-    expect(buildPrompt("x")).toContain("respond in English");
+  it("instructs to respond only in English", () => {
+    expect(buildPrompt("x")).toMatch(/respond only in English/i);
   });
 
   it("clarifies that severity must not hold a category value", () => {
     const prompt = buildPrompt("diff");
     expect(prompt).toContain("Never put a category value");
-    expect(prompt).toContain("critical, warning, nit");
+    expect(prompt).toContain("critical");
+    expect(prompt).toContain("warning");
+    expect(prompt).toContain("nit");
   });
 });
 
