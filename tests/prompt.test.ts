@@ -51,4 +51,8 @@ describe("buildAgentPrompt step budget", () => {
   it("nudges the agent to submit early due to a limited step budget", () => {
     expect(buildAgentPrompt("diff")).toContain("limited step budget");
   });
+
+  it("nudges the agent to batch multiple tool calls in one turn", () => {
+    expect(buildAgentPrompt("diff")).toMatch(/multiple tools in the SAME turn/i);
+  });
 });
