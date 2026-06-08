@@ -124,7 +124,15 @@ describe("getAgentProvider", () => {
 
   it("rejects providers that do not support agent mode", () => {
     expect(() => getAgentProvider("ollama", {})).toThrow(/supports only/);
-    expect(() => getAgentProvider("openai-compatible", { OPENAI_API_KEY: "k" })).toThrow(/supports only/);
+  });
+
+  it("returns an OpenAICompatibleProvider for 'openai-compatible'", () => {
+    const p = getAgentProvider("openai-compatible", { OPENAI_API_KEY: "k" });
+    expect(p).toBeInstanceOf(OpenAICompatibleProvider);
+  });
+
+  it("throws a clear error for 'openai-compatible' without a key", () => {
+    expect(() => getAgentProvider("openai-compatible", {})).toThrow(/OPENAI_API_KEY/);
   });
 
   it("throws when the Claude key is missing", () => {

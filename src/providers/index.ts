@@ -91,5 +91,21 @@ export function getAgentProvider(
     }
     return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0);
   }
+  if (normalized === "openai-compatible") {
+    const key = env.OPENAI_API_KEY;
+    if (!key) {
+      throw ERRORS.missingApiKey(
+        "OPENAI_API_KEY",
+        'providers["openai-compatible"].apiKey',
+        "https://platform.openai.com/api-keys",
+      );
+    }
+    return new OpenAICompatibleProvider(
+      key,
+      options.model || undefined,
+      options.baseUrl || undefined,
+      options.temperature ?? 0,
+    );
+  }
   throw ERRORS.agentUnsupported(name);
 }

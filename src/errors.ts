@@ -158,6 +158,6 @@ export const ERRORS = {
   agentUnsupported: (provider: string) =>
     new ReviewerError(
       EErrorCode.AgentUnsupported,
-      `Agent mode supports only the claude and gemini providers. Got "${provider}". Use --provider claude or gemini.`,
+      `Agent mode supports only the claude, gemini, and openai-compatible providers. Got "${provider}". Use --provider claude, gemini, or openai-compatible.`,
     ),
 };
