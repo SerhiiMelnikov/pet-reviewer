@@ -43,9 +43,7 @@ describe("buildPrompt", () => {
   it("clarifies that severity must not hold a category value", () => {
     const prompt = buildPrompt("diff");
     expect(prompt).toContain("Never put a category value");
-    expect(prompt).toContain("critical");
-    expect(prompt).toContain("warning");
-    expect(prompt).toContain("nit");
+    expect(prompt).toMatch(/critical.*warning.*nit/s);
   });
 });
 
@@ -56,5 +54,9 @@ describe("buildAgentPrompt agent guidance", () => {
 
   it("nudges the agent to batch multiple tool calls in one turn", () => {
     expect(buildAgentPrompt("diff")).toContain("multiple tools in the SAME turn");
+  });
+
+  it("carries the severity-not-category guard into the agent prompt", () => {
+    expect(buildAgentPrompt("diff")).toContain("Never put a category value");
   });
 });
