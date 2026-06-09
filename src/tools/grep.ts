@@ -22,8 +22,14 @@ export function makeGrepTool(run: TCommandRunner = defaultRunner): IAgentTool {
       try {
         const out = run("git", args);
         return out.trim() === "" ? "(no matches)" : out;
-      } catch {
-        return "(no matches)";
+      } catch (err) {
+        const e = err as { status?: number; stderr?: unknown };
+        // status 1 means "no matches"; anything else (including an undefined status
+        // from an unexpected failure) is a real error to surface to the model.
+        if (e.status === 1) return "(no matches)";
+        const stderr = String(e.stderr ?? "").trim();
+        const firstLine = stderr.split(/\r?\n/).find((line) => line.trim() !== "") ?? "git grep failed";
+        return `(grep error: ${firstLine})`;
       }
     },
   };
