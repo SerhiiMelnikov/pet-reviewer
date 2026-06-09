@@ -93,6 +93,7 @@ npx pet-reviewer --base origin/main --fail-on warning   # CI: review a branch, f
 | `--skip <categories>` | comma-separated categories that never block |
 | `--agent` | agentic review (reads files, greps, lists dirs) |
 | `--max-steps <n>` | max agent tool-use steps (default 12) |
+| `--timeout <seconds>` | per-request timeout in seconds (default 180; raise for slow local models) |
 | `--temperature <0..1>` | sampling temperature (default 0, deterministic) |
 | `--base <ref>` | review `git diff <ref>...HEAD` (a branch's committed changes) |
 | `--fail-on <level>` | exit non-zero if any finding is at/above this severity (CI gate) |
