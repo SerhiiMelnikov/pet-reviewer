@@ -48,6 +48,15 @@ function parseTemperature(value?: string): number | undefined {
   return n;
 }
 
+export function parseTimeout(value?: string): number | undefined {
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) {
+    throw ERRORS.cliTimeout(value);
+  }
+  return n;
+}
+
 function parseFailOn(value?: string): TSeverity | undefined {
   if (value === undefined) return undefined;
   if ((SEVERITIES as string[]).includes(value)) return value as TSeverity;
@@ -77,6 +86,7 @@ interface IReviewOpts {
   agent?: boolean;
   maxSteps?: string;
   temperature?: string;
+  timeout?: string;
   base?: string;
   failOn?: string;
 }
@@ -93,11 +103,13 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   let cliBlockLevel: TSeverity | undefined;
   let cliSkip: TCategory[] | undefined;
   let cliTemperature: number | undefined;
+  let timeoutSecs: number | undefined;
   let cliFailOn: TSeverity | undefined;
   try {
     cliBlockLevel = opts.blockLevel ? parseBlockLevel(opts.blockLevel) : undefined;
     cliSkip = opts.skip ? parseSkip(opts.skip) : undefined;
     cliTemperature = parseTemperature(opts.temperature);
+    timeoutSecs = parseTimeout(opts.timeout);
     cliFailOn = parseFailOn(opts.failOn);
     if (opts.base && opts.commit) {
       throw ERRORS.cliBaseCommit();
@@ -118,6 +130,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       blockLevel: cliBlockLevel,
       skip: cliSkip,
       temperature: cliTemperature,
+      timeout: timeoutSecs,
     },
     config,
     process.env,
@@ -149,7 +162,12 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       agentProvider = getAgentProvider(
         settings.provider,
         providerEnv(settings.provider, settings.apiKey),
-        { model: settings.model, baseUrl: settings.baseUrl, temperature: settings.temperature },
+        {
+          model: settings.model,
+          baseUrl: settings.baseUrl,
+          temperature: settings.temperature,
+          timeoutMs: settings.timeout !== undefined ? settings.timeout * 1000 : undefined,
+        },
       );
     } catch (err) {
       console.error(pc.red((err as Error).message));
@@ -173,7 +191,12 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       provider = getProvider(
         settings.provider,
         providerEnv(settings.provider, settings.apiKey),
-        { model: settings.model, baseUrl: settings.baseUrl, temperature: settings.temperature },
+        {
+          model: settings.model,
+          baseUrl: settings.baseUrl,
+          temperature: settings.temperature,
+          timeoutMs: settings.timeout !== undefined ? settings.timeout * 1000 : undefined,
+        },
       );
     } catch (err) {
       console.error(pc.red((err as Error).message));
@@ -263,6 +286,7 @@ export async function run(): Promise<void> {
     .option("--agent", "run an agentic review (Claude only): reads files, greps, lists dirs")
     .option("--max-steps <n>", "max agent tool-use steps (default 12)")
     .option("--temperature <n>", "sampling temperature 0..1 (default 0, deterministic)")
+    .option("--timeout <seconds>", "per-request timeout in seconds (default 180; raise for slow local models)")
     .option("--base <ref>", "review committed changes vs this base ref (git diff <ref>...HEAD)")
     .option("--fail-on <level>", "exit non-zero if any finding is at/above this severity (CI gate, no commit)")
     .action(runReview);
