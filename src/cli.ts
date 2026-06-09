@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { Command } from "commander";
-import pc from "picocolors";
+import pc from "./colors";
 import { getDiff, getRepoRoot } from "./git";
 import { buildPrompt } from "./prompt";
 import { parseReview } from "./parse";
@@ -10,7 +10,7 @@ import { runAgent } from "./agent";
 import { INormalizeResult } from "./normalize";
 import { decideCommit } from "./gate";
 import { createCommit } from "./commit";
-import { SEVERITIES, CATEGORIES, TSeverity, TCategory } from "./schema";
+import { SEVERITIES, CATEGORIES, TSeverity, TCategory, IReview } from "./schema";
 import { loadConfig, resolveSettings } from "./config";
 import { initConfig } from "./init";
 import { ERRORS } from "./errors";
@@ -57,6 +57,10 @@ export function parseTimeout(value?: string): number | undefined {
   return n;
 }
 
+export function reviewToJson(review: IReview): string {
+  return JSON.stringify(review, null, 2);
+}
+
 function parseFailOn(value?: string): TSeverity | undefined {
   if (value === undefined) return undefined;
   if ((SEVERITIES as string[]).includes(value)) return value as TSeverity;
@@ -89,9 +93,12 @@ interface IReviewOpts {
   timeout?: string;
   base?: string;
   failOn?: string;
+  json?: boolean;
 }
 
 async function runReview(opts: IReviewOpts): Promise<void> {
+  const diag = opts.json ? console.error : console.log;
+
   let config;
   try {
     config = await loadConfig();
@@ -116,6 +123,9 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     }
     if (opts.commit && opts.failOn) {
       throw ERRORS.cliFailOnCommit();
+    }
+    if (opts.json && opts.commit) {
+      throw ERRORS.cliJsonCommit();
     }
   } catch (err) {
     console.error(pc.red((err as Error).message));
@@ -148,7 +158,8 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   }
 
   if (diff.trim() === "") {
-    console.log(pc.yellow("No changes to review (git diff is empty)."));
+    if (opts.json) console.log(reviewToJson({ findings: [], commitMessage: "" }));
+    else console.log(pc.yellow("No changes to review (git diff is empty)."));
     return;
   }
 
@@ -166,14 +177,14 @@ async function runReview(opts: IReviewOpts): Promise<void> {
           model: settings.model,
           baseUrl: settings.baseUrl,
           temperature: settings.temperature,
-          timeoutMs: cliTimeoutSecs !== undefined ? cliTimeoutSecs * 1000 : undefined,
+          timeoutMs: settings.timeout !== undefined ? settings.timeout * 1000 : undefined,
         },
       );
     } catch (err) {
       console.error(pc.red((err as Error).message));
       process.exit(1);
     }
-    console.log(pc.dim(`Reviewing with the ${settings.provider} agent (max ${maxSteps} steps)...`));
+    diag(pc.dim(`Reviewing with the ${settings.provider} agent (max ${maxSteps} steps)...`));
     try {
       result = await runAgent(diff, agentProvider, { maxSteps, root: getRepoRoot() }, settings.rules);
     } catch (err) {
@@ -202,7 +213,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       console.error(pc.red((err as Error).message));
       process.exit(1);
     }
-    console.log(pc.dim(`Analyzing changes via "${settings.provider}"...`));
+    diag(pc.dim(`Analyzing changes via "${settings.provider}"...`));
     let rawText: string;
     try {
       rawText = await provider.review(buildPrompt(diff, settings.rules));
@@ -224,7 +235,11 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       pc.yellow(`Note: dropped ${dropped} malformed finding(s) from the model response.`),
     );
   }
-  console.log("\n" + renderFindings(review.findings));
+  if (opts.json) {
+    console.log(reviewToJson(review));
+  } else {
+    console.log("\n" + renderFindings(review.findings));
+  }
 
   if (opts.commit) {
     const { blockers } = decideCommit(review.findings, {
@@ -289,6 +304,7 @@ export async function run(): Promise<void> {
     .option("--timeout <seconds>", "per-request timeout in seconds (default 180; raise for slow local models)")
     .option("--base <ref>", "review committed changes vs this base ref (git diff <ref>...HEAD)")
     .option("--fail-on <level>", "exit non-zero if any finding is at/above this severity (CI gate, no commit)")
+    .option("--json", "output the review as JSON to stdout (machine-readable; cannot be combined with --commit)")
     .action(runReview);
 
   await program.parseAsync();

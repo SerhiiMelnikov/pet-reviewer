@@ -97,6 +97,7 @@ npx pet-reviewer --base origin/main --fail-on warning   # CI: review a branch, f
 | `--temperature <0..1>` | sampling temperature (default 0, deterministic) |
 | `--base <ref>` | review `git diff <ref>...HEAD` (a branch's committed changes) |
 | `--fail-on <level>` | exit non-zero if any finding is at/above this severity (CI gate) |
+| `--json` | output the review as JSON to stdout (machine-readable; not with `--commit`) |
 
 `npx pet-reviewer init` scaffolds a `reviewer.config.js` — see [Configuration](#configuration).
 
@@ -302,6 +303,7 @@ CI fail gate (`--base … --fail-on`), and plain review (neither).
 
 **This repo's own workflow** (`.github/workflows/ci.yml`) runs on every pull request: a
 **test** job (suite + type check + build, which gates the PR) and an **advisory review** job
-that runs the agent reviewer with Claude haiku on the PR diff and posts the findings as a PR
-comment — it never fails the check. It needs an `ANTHROPIC_API_KEY` repository secret
+that runs the agent reviewer with Claude haiku on the PR diff and posts each finding as an
+**inline comment** on the changed line (with a summary comment for findings it can't anchor)
+— it never fails the check. It needs an `ANTHROPIC_API_KEY` repository secret
 (Settings → Secrets and variables → Actions); pull requests from forks skip the review job.

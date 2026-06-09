@@ -28,6 +28,7 @@ export enum EErrorCode {
   CliFailOn = "6.6",
   CliFailOnCommit = "6.7",
   CliTimeout = "6.8",
+  CliJsonCommit = "6.9",
 }
 
 export class ReviewerError extends Error {
@@ -160,5 +161,10 @@ export const ERRORS = {
     new ReviewerError(
       EErrorCode.CliFailOnCommit,
       "--fail-on cannot be combined with --commit: --commit commits when nothing blocks, while --fail-on only sets a non-zero exit code (for CI) and never commits.",
+    ),
+  cliJsonCommit: () =>
+    new ReviewerError(
+      EErrorCode.CliJsonCommit,
+      "--json cannot be combined with --commit: --json prints a machine-readable review, while --commit commits when nothing blocks.",
     ),
 };

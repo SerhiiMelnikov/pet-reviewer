@@ -1,4 +1,4 @@
-import pc from "picocolors";
+import pc from "./colors";
 import { IFinding, TSeverity } from "./schema";
 
 const SEVERITY_ICON: Record<TSeverity, string> = {
