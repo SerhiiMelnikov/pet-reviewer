@@ -14,22 +14,18 @@ export class OllamaProvider implements IReviewProvider {
     private timeoutMs = 180_000,
   ) {}
 
-  async review(prompt: string): Promise<string> {
+  // Shared transport: POST a body to an Ollama endpoint, map errors with Ollama-specific
+  // hints, return the parsed JSON. Used by both review() (/api/generate) and chat() (/api/chat).
+  private async request(path: string, body: unknown): Promise<unknown> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
     let res: Response;
     try {
-      res = await this.fetchFn(`${this.baseUrl}/api/generate`, {
+      res = await this.fetchFn(`${this.baseUrl}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: this.model,
-          prompt,
-          stream: false,
-          format: "json",
-          options: { temperature: this.temperature },
-        }),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
     } catch (err) {
@@ -56,7 +52,18 @@ export class OllamaProvider implements IReviewProvider {
         `Is the model \`${this.model}\` pulled (\`ollama pull ${this.model}\`)?`,
       );
     }
-    const data = (await res.json()) as IOllamaResponse;
+
+    return res.json();
+  }
+
+  async review(prompt: string): Promise<string> {
+    const data = (await this.request("/api/generate", {
+      model: this.model,
+      prompt,
+      stream: false,
+      format: "json",
+      options: { temperature: this.temperature },
+    })) as IOllamaResponse;
     return data.response;
   }
 }
