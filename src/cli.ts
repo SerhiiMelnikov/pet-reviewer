@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { Command } from "commander";
-import pc from "picocolors";
+import pc from "./colors";
 import { getDiff, getRepoRoot } from "./git";
 import { buildPrompt } from "./prompt";
 import { parseReview } from "./parse";
