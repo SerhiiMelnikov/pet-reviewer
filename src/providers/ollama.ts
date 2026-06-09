@@ -65,7 +65,8 @@ function toOllamaMessages(messages: IMessage[]): unknown[] {
           toolCalls.push({ function: { name: block.name, arguments: block.input } });
         }
       }
-      const assistant: Record<string, unknown> = { role: "assistant", content: text };
+      // OpenAI/Ollama: prefer null over "" for a tool-call-only assistant turn.
+      const assistant: Record<string, unknown> = { role: "assistant", content: text || null };
       if (toolCalls.length) assistant.tool_calls = toolCalls;
       out.push(assistant);
       continue;
@@ -162,6 +163,7 @@ export class OllamaProvider implements IReviewProvider, IAgentProvider {
     })) as IOllamaChatResponse;
 
     const message = data.message;
+    // Empty string content → treat as no text (the model only emitted tool calls).
     const text = message?.content || undefined;
     const toolCalls = (message?.tool_calls ?? []).map((tc, i) => ({
       id: `${tc.function.name}__${i}`,

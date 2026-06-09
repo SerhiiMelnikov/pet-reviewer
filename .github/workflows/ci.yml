@@ -43,6 +43,7 @@ jobs:
             > review-output.txt 2>&1 || true
           cat review-output.txt
       - name: Post findings as a PR comment
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -50,7 +51,7 @@ jobs:
             echo "## 🤖 pet-reviewer (Claude haiku — advisory)"
             echo ""
             echo '```'
-            cat review-output.txt
+            cat review-output.txt 2>/dev/null || echo "(no review output produced)"
             echo '```'
           } > comment.md
           gh pr comment "${{ github.event.pull_request.number }}" \

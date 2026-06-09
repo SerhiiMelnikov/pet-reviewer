@@ -207,7 +207,7 @@ describe("ClaudeProvider timeoutMs", () => {
     expect((withTimeout as unknown as { client: { timeout?: number } }).client.timeout).toBe(5000);
 
     const withoutTimeout = new ClaudeProvider("k", undefined, 0, undefined);
-    // No timeout passed → the Anthropic SDK supplies its own default (600_000 ms).
-    expect((withoutTimeout as unknown as { client: { timeout?: number } }).client.timeout).toBe(600_000);
+    // No timeout passed → ClaudeProvider's own 180_000 ms default (unified with the others).
+    expect((withoutTimeout as unknown as { client: { timeout?: number } }).client.timeout).toBe(180_000);
   });
 });

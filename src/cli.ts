@@ -51,7 +51,7 @@ function parseTemperature(value?: string): number | undefined {
 export function parseTimeout(value?: string): number | undefined {
   if (value === undefined) return undefined;
   const n = Number(value);
-  if (!Number.isInteger(n) || n < 1) {
+  if (Number.isNaN(n) || !Number.isInteger(n) || n < 1) {
     throw ERRORS.cliTimeout(value);
   }
   return n;
@@ -103,13 +103,13 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   let cliBlockLevel: TSeverity | undefined;
   let cliSkip: TCategory[] | undefined;
   let cliTemperature: number | undefined;
-  let timeoutSecs: number | undefined;
+  let cliTimeoutSecs: number | undefined;
   let cliFailOn: TSeverity | undefined;
   try {
     cliBlockLevel = opts.blockLevel ? parseBlockLevel(opts.blockLevel) : undefined;
     cliSkip = opts.skip ? parseSkip(opts.skip) : undefined;
     cliTemperature = parseTemperature(opts.temperature);
-    timeoutSecs = parseTimeout(opts.timeout);
+    cliTimeoutSecs = parseTimeout(opts.timeout);
     cliFailOn = parseFailOn(opts.failOn);
     if (opts.base && opts.commit) {
       throw ERRORS.cliBaseCommit();
@@ -130,7 +130,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       blockLevel: cliBlockLevel,
       skip: cliSkip,
       temperature: cliTemperature,
-      timeout: timeoutSecs,
+      timeout: cliTimeoutSecs,
     },
     config,
     process.env,
@@ -166,7 +166,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
           model: settings.model,
           baseUrl: settings.baseUrl,
           temperature: settings.temperature,
-          timeoutMs: settings.timeout !== undefined ? settings.timeout * 1000 : undefined,
+          timeoutMs: cliTimeoutSecs !== undefined ? cliTimeoutSecs * 1000 : undefined,
         },
       );
     } catch (err) {

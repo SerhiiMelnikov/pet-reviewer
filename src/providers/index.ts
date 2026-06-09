@@ -72,6 +72,15 @@ export function getAgentProvider(
   options: IProviderOptions = {},
 ): IAgentProvider {
   const normalized = name.toLowerCase();
+  if (normalized === "ollama") {
+    return new OllamaProvider(
+      options.model || undefined,
+      options.baseUrl || undefined,
+      options.temperature ?? 0,
+      undefined,
+      options.timeoutMs,
+    );
+  }
   if (normalized === "claude") {
     const key = env.ANTHROPIC_API_KEY;
     if (!key) {
@@ -105,15 +114,6 @@ export function getAgentProvider(
     }
     return new OpenAICompatibleProvider(
       key,
-      options.model || undefined,
-      options.baseUrl || undefined,
-      options.temperature ?? 0,
-      undefined,
-      options.timeoutMs,
-    );
-  }
-  if (normalized === "ollama") {
-    return new OllamaProvider(
       options.model || undefined,
       options.baseUrl || undefined,
       options.temperature ?? 0,
