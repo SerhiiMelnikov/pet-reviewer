@@ -55,4 +55,10 @@ describe("ERRORS", () => {
     expect(ERRORS.configTimeout("reviewer.config.js", "0").code).toBe(EErrorCode.ConfigTimeout);
     expect(ERRORS.configTimeout("reviewer.config.js", "0").message).toContain("timeout");
   });
+
+  it("builds the json/commit exclusivity error", () => {
+    expect(ERRORS.cliJsonCommit().code).toBe(EErrorCode.CliJsonCommit);
+    expect(ERRORS.cliJsonCommit().message).toContain("--json");
+    expect(ERRORS.cliJsonCommit().message).toContain("--commit");
+  });
 });
