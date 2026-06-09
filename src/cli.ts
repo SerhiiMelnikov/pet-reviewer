@@ -177,7 +177,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
           model: settings.model,
           baseUrl: settings.baseUrl,
           temperature: settings.temperature,
-          timeoutMs: cliTimeoutSecs !== undefined ? cliTimeoutSecs * 1000 : undefined,
+          timeoutMs: settings.timeout !== undefined ? settings.timeout * 1000 : undefined,
         },
       );
     } catch (err) {
