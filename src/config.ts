@@ -28,6 +28,7 @@ export interface IReviewerConfig {
   };
   rules?: IRule[];
   temperature?: number;
+  timeout?: number;
 }
 
 export interface IResolvedSettings {
@@ -39,6 +40,7 @@ export interface IResolvedSettings {
   skip: TCategory[];
   rules: IRule[];
   temperature: number;
+  timeout?: number;
 }
 
 export function validateConfig(raw: unknown): IReviewerConfig {
@@ -100,6 +102,14 @@ export function validateConfig(raw: unknown): IReviewerConfig {
     throw ERRORS.configTemperature(CONFIG_FILENAME, String(temperature));
   }
 
+  const timeout = config.timeout;
+  if (
+    timeout !== undefined &&
+    (typeof timeout !== "number" || !Number.isInteger(timeout) || timeout < 1)
+  ) {
+    throw ERRORS.configTimeout(CONFIG_FILENAME, String(timeout));
+  }
+
   return config;
 }
 
@@ -126,6 +136,7 @@ export interface ICliFlags {
   blockLevel?: TSeverity;
   skip?: TCategory[];
   temperature?: number;
+  timeout?: number;
 }
 
 export function resolveSettings(
@@ -162,5 +173,6 @@ export function resolveSettings(
     skip: cli.skip ?? config.commit?.skip ?? [],
     rules: config.rules ?? [],
     temperature: cli.temperature ?? config.temperature ?? 0,
+    timeout: cli.timeout ?? config.timeout,
   };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateConfig } from "../src/config";
+import { validateConfig, resolveSettings } from "../src/config";
 
 describe("validateConfig", () => {
   it("accepts an empty object", () => {
@@ -72,5 +72,21 @@ describe("validateConfig", () => {
     expect(() => validateConfig({ temperature: 2 })).toThrow(/temperature/);
     expect(() => validateConfig({ temperature: -1 })).toThrow(/temperature/);
     expect(() => validateConfig({ temperature: "hot" })).toThrow(/temperature/);
+  });
+
+  it("accepts a valid timeout", () => {
+    expect(() => validateConfig({ timeout: 900 })).not.toThrow();
+  });
+
+  it("rejects a non-positive or non-integer timeout", () => {
+    expect(() => validateConfig({ timeout: 0 })).toThrow(/timeout/);
+    expect(() => validateConfig({ timeout: -5 })).toThrow(/timeout/);
+    expect(() => validateConfig({ timeout: 1.5 })).toThrow(/timeout/);
+  });
+
+  it("resolves timeout: cli over config, undefined when unset", () => {
+    expect(resolveSettings({ timeout: 600 }, { timeout: 300 }, {}).timeout).toBe(600);
+    expect(resolveSettings({}, { timeout: 300 }, {}).timeout).toBe(300);
+    expect(resolveSettings({}, {}, {}).timeout).toBeUndefined();
   });
 });
