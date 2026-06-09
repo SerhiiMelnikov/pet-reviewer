@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 export type TCommandRunner = (cmd: string, args: string[]) => string;
 
 export const defaultRunner: TCommandRunner = (cmd, args) =>
-  execFileSync(cmd, args, { encoding: "utf8" });
+  execFileSync(cmd, args, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] });
 
 // Returns the diff to review: working tree vs HEAD by default, or the three-dot
 // `<base>...HEAD` (the PR diff — changes since the merge-base) when a base ref is given.
