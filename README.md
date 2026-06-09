@@ -299,3 +299,9 @@ jobs:
 
 There are three mutually-exclusive gate modes: the local commit gate (`--commit`), the
 CI fail gate (`--base … --fail-on`), and plain review (neither).
+
+**This repo's own workflow** (`.github/workflows/ci.yml`) runs on every pull request: a
+**test** job (suite + type check + build, which gates the PR) and an **advisory review** job
+that runs the agent reviewer with Claude haiku on the PR diff and posts the findings as a PR
+comment — it never fails the check. It needs an `ANTHROPIC_API_KEY` repository secret
+(Settings → Secrets and variables → Actions); pull requests from forks skip the review job.
