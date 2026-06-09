@@ -107,5 +107,12 @@ export function getAgentProvider(
       options.temperature ?? 0,
     );
   }
-  throw ERRORS.agentUnsupported(name);
+  if (normalized === "ollama") {
+    return new OllamaProvider(
+      options.model || undefined,
+      options.baseUrl || undefined,
+      options.temperature ?? 0,
+    );
+  }
+  throw ERRORS.unknownProvider(name);
 }

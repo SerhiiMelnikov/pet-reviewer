@@ -26,7 +26,6 @@ export enum EErrorCode {
   CliBaseCommit = "6.5",
   CliFailOn = "6.6",
   CliFailOnCommit = "6.7",
-  AgentUnsupported = "7.1",
 }
 
 export class ReviewerError extends Error {
@@ -152,12 +151,5 @@ export const ERRORS = {
     new ReviewerError(
       EErrorCode.CliFailOnCommit,
       "--fail-on cannot be combined with --commit: --commit commits when nothing blocks, while --fail-on only sets a non-zero exit code (for CI) and never commits.",
-    ),
-
-  // 7.x — agent mode
-  agentUnsupported: (provider: string) =>
-    new ReviewerError(
-      EErrorCode.AgentUnsupported,
-      `Agent mode supports only the claude, gemini, and openai-compatible providers. Got "${provider}". Use --provider claude, gemini, or openai-compatible.`,
     ),
 };

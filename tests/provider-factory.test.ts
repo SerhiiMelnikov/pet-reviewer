@@ -122,8 +122,13 @@ describe("getAgentProvider", () => {
     expect(p.baseUrl).toBe("https://example.test");
   });
 
-  it("rejects providers that do not support agent mode", () => {
-    expect(() => getAgentProvider("ollama", {})).toThrow(/supports only/);
+  it("returns an OllamaProvider for 'ollama'", () => {
+    const p = getAgentProvider("ollama", {});
+    expect(p).toBeInstanceOf(OllamaProvider);
+  });
+
+  it("throws an unknown-provider error for an unknown name", () => {
+    expect(() => getAgentProvider("nope", {})).toThrow(/Unknown provider/i);
   });
 
   it("returns an OpenAICompatibleProvider for 'openai-compatible'", () => {
