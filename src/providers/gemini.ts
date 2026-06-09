@@ -86,7 +86,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
     readonly baseUrl = "https://generativelanguage.googleapis.com",
     readonly temperature = 0,
     private fetchFn: typeof fetch = fetch,
-    private timeoutMs = 180_000,
+    readonly timeoutMs = 180_000,
   ) {}
 
   // Shared transport: POST a request body, map errors, return the parsed response.

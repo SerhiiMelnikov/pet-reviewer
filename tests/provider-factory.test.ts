@@ -96,6 +96,16 @@ describe("getProvider", () => {
     const claude = getProvider("claude", { ANTHROPIC_API_KEY: "k" }) as ClaudeProvider;
     expect(claude.model).toBe("claude-haiku-4-5-20251001");
   });
+
+  it("passes timeoutMs through to the provider", () => {
+    const p = getProvider("ollama", {}, { timeoutMs: 900_000 }) as OllamaProvider;
+    expect(p.timeoutMs).toBe(900_000);
+  });
+
+  it("uses the provider default timeout when none is given", () => {
+    const p = getProvider("ollama", {}) as OllamaProvider;
+    expect(p.timeoutMs).toBe(180_000);
+  });
 });
 
 describe("getAgentProvider", () => {

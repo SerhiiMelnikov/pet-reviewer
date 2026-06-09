@@ -89,7 +89,7 @@ export class OllamaProvider implements IReviewProvider, IAgentProvider {
     readonly baseUrl = "http://localhost:11434",
     readonly temperature = 0,
     private fetchFn: typeof fetch = fetch,
-    private timeoutMs = 180_000,
+    readonly timeoutMs = 180_000,
   ) {}
 
   // Shared transport: POST a body to an Ollama endpoint, map errors with Ollama-specific
