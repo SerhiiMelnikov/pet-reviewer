@@ -48,4 +48,11 @@ describe("ERRORS", () => {
     expect(ERRORS.cliFailOnCommit().message).toContain("--fail-on");
     expect(ERRORS.cliFailOnCommit().message).toContain("--commit");
   });
+
+  it("builds the timeout validation errors", () => {
+    expect(ERRORS.cliTimeout("0").code).toBe(EErrorCode.CliTimeout);
+    expect(ERRORS.cliTimeout("0").message).toContain("--timeout");
+    expect(ERRORS.configTimeout("reviewer.config.js", "0").code).toBe(EErrorCode.ConfigTimeout);
+    expect(ERRORS.configTimeout("reviewer.config.js", "0").message).toContain("timeout");
+  });
 });

@@ -16,6 +16,7 @@ export enum EErrorCode {
   ConfigRuleSeverity = "3.9",
   ConfigLoadFailed = "3.10",
   ConfigTemperature = "3.11",
+  ConfigTimeout = "3.12",
   ParseInvalidJson = "4.1",
   ParseSchemaMismatch = "4.2",
   InitConfigExists = "5.1",
@@ -26,6 +27,7 @@ export enum EErrorCode {
   CliBaseCommit = "6.5",
   CliFailOn = "6.6",
   CliFailOnCommit = "6.7",
+  CliTimeout = "6.8",
 }
 
 export class ReviewerError extends Error {
@@ -114,6 +116,11 @@ export const ERRORS = {
       EErrorCode.ConfigTemperature,
       `Invalid "temperature" in ${filename}: "${value}". Use a number between 0 and 1.`,
     ),
+  configTimeout: (filename: string, value: string) =>
+    new ReviewerError(
+      EErrorCode.ConfigTimeout,
+      `Invalid "timeout" in ${filename}: "${value}". Use a positive integer number of seconds.`,
+    ),
 
   // 4.x — parse / model output
   parseInvalidJson: (rawText: string) =>
@@ -140,6 +147,8 @@ export const ERRORS = {
     new ReviewerError(EErrorCode.CliMaxSteps, `Invalid --max-steps "${value}". Use a positive integer.`),
   cliTemperature: (value: string) =>
     new ReviewerError(EErrorCode.CliTemperature, `Invalid --temperature "${value}". Use a number between 0 and 1.`),
+  cliTimeout: (value: string) =>
+    new ReviewerError(EErrorCode.CliTimeout, `Invalid --timeout "${value}". Use a positive integer number of seconds.`),
   cliBaseCommit: () =>
     new ReviewerError(
       EErrorCode.CliBaseCommit,
