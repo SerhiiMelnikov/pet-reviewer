@@ -158,7 +158,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   }
 
   if (diff.trim() === "") {
-    if (opts.json) console.log(JSON.stringify({ findings: [], commitMessage: "" }, null, 2));
+    if (opts.json) console.log(reviewToJson({ findings: [], commitMessage: "" }));
     else console.log(pc.yellow("No changes to review (git diff is empty)."));
     return;
   }

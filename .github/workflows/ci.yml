@@ -23,6 +23,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -86,7 +87,7 @@ jobs:
               return;
             }
 
-            const body = (f) =>
+            const formatFinding = (f) =>
               `${emoji[f.severity] || "•"} **[${f.category}]** ${f.message}` +
               (f.suggestion ? `\n\n↳ ${f.suggestion}` : "") +
               `\n\n${marker}`;
@@ -97,7 +98,7 @@ jobs:
               try {
                 await github.rest.pulls.createReviewComment({
                   owner, repo, pull_number: pr.number, commit_id: pr.head.sha,
-                  path: f.file, line: f.line, side: "RIGHT", body: body(f),
+                  path: f.file, line: f.line, side: "RIGHT", body: formatFinding(f),
                 });
               } catch {
                 leftovers.push(f); // line not in the diff (422) etc.
