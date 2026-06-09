@@ -94,6 +94,7 @@ describe("makeGrepTool", () => {
     };
     const out = await makeGrepTool(fakeRun).execute({ pattern: "x" }, root);
     expect(out).toMatch(/grep error/i);
+    expect(out).toContain("permission denied");
   });
   it("runs git grep with extended regex (-E before -e)", async () => {
     let captured: string[] = [];
