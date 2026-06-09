@@ -93,6 +93,7 @@ npx pet-reviewer --base origin/main --fail-on warning   # CI: review a branch, f
 | `--skip <categories>` | comma-separated categories that never block |
 | `--agent` | agentic review (reads files, greps, lists dirs) |
 | `--max-steps <n>` | max agent tool-use steps (default 12) |
+| `--timeout <seconds>` | per-request timeout in seconds (default 180; raise for slow local models) |
 | `--temperature <0..1>` | sampling temperature (default 0, deterministic) |
 | `--base <ref>` | review `git diff <ref>...HEAD` (a branch's committed changes) |
 | `--fail-on <level>` | exit non-zero if any finding is at/above this severity (CI gate) |
@@ -156,7 +157,8 @@ npx pet-reviewer --agent --max-steps 20
 - **Providers:** Claude (the default) and Gemini fully support agent mode.
   `openai-compatible` also works with `--agent` (**experimental** — verified against
   Groq and Fireworks; any OpenAI-compatible endpoint with tool-calling should work).
-  `ollama` stays single-shot for now.
+  `ollama` also works with `--agent` (**experimental** — needs a tool-capable local model
+  such as `llama3.2` or `qwen2.5`).
 - **Model choice matters:** the loop makes several sequential calls with growing
   context, so a weak model can be slow — you may wait a long time for a result.
   Prefer a stronger model for `--agent` (e.g. `claude-sonnet-4-6` or
@@ -297,3 +299,9 @@ jobs:
 
 There are three mutually-exclusive gate modes: the local commit gate (`--commit`), the
 CI fail gate (`--base … --fail-on`), and plain review (neither).
+
+**This repo's own workflow** (`.github/workflows/ci.yml`) runs on every pull request: a
+**test** job (suite + type check + build, which gates the PR) and an **advisory review** job
+that runs the agent reviewer with Claude haiku on the PR diff and posts the findings as a PR
+comment — it never fails the check. It needs an `ANTHROPIC_API_KEY` repository secret
+(Settings → Secrets and variables → Actions); pull requests from forks skip the review job.

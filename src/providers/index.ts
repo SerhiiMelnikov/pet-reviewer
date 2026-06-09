@@ -11,6 +11,7 @@ export interface IProviderOptions {
   model?: string;
   baseUrl?: string;
   temperature?: number;
+  timeoutMs?: number;
 }
 
 export function getProvider(
@@ -20,7 +21,7 @@ export function getProvider(
 ): IReviewProvider {
   const normalized = name.toLowerCase();
   if (normalized === "ollama") {
-    return new OllamaProvider(options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0);
+    return new OllamaProvider(options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0, undefined, options.timeoutMs);
   }
   if (normalized === "claude") {
     const key = env.ANTHROPIC_API_KEY;
@@ -31,7 +32,7 @@ export function getProvider(
         "https://console.anthropic.com",
       );
     }
-    return new ClaudeProvider(key, options.model || undefined, options.temperature ?? 0);
+    return new ClaudeProvider(key, options.model || undefined, options.temperature ?? 0, undefined, options.timeoutMs);
   }
   if (normalized === "gemini") {
     const key = env.GEMINI_API_KEY;
@@ -42,7 +43,7 @@ export function getProvider(
         "https://aistudio.google.com/apikey",
       );
     }
-    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0);
+    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0, undefined, options.timeoutMs);
   }
   if (normalized === "openai-compatible") {
     const key = env.OPENAI_API_KEY;
@@ -58,6 +59,8 @@ export function getProvider(
       options.model || undefined,
       options.baseUrl || undefined,
       options.temperature ?? 0,
+      undefined,
+      options.timeoutMs,
     );
   }
   throw ERRORS.unknownProvider(name);
@@ -69,6 +72,15 @@ export function getAgentProvider(
   options: IProviderOptions = {},
 ): IAgentProvider {
   const normalized = name.toLowerCase();
+  if (normalized === "ollama") {
+    return new OllamaProvider(
+      options.model || undefined,
+      options.baseUrl || undefined,
+      options.temperature ?? 0,
+      undefined,
+      options.timeoutMs,
+    );
+  }
   if (normalized === "claude") {
     const key = env.ANTHROPIC_API_KEY;
     if (!key) {
@@ -78,7 +90,7 @@ export function getAgentProvider(
         "https://console.anthropic.com",
       );
     }
-    return new ClaudeProvider(key, options.model || undefined, options.temperature ?? 0);
+    return new ClaudeProvider(key, options.model || undefined, options.temperature ?? 0, undefined, options.timeoutMs);
   }
   if (normalized === "gemini") {
     const key = env.GEMINI_API_KEY;
@@ -89,7 +101,7 @@ export function getAgentProvider(
         "https://aistudio.google.com/apikey",
       );
     }
-    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0);
+    return new GeminiProvider(key, options.model || undefined, options.baseUrl || undefined, options.temperature ?? 0, undefined, options.timeoutMs);
   }
   if (normalized === "openai-compatible") {
     const key = env.OPENAI_API_KEY;
@@ -105,7 +117,9 @@ export function getAgentProvider(
       options.model || undefined,
       options.baseUrl || undefined,
       options.temperature ?? 0,
+      undefined,
+      options.timeoutMs,
     );
   }
-  throw ERRORS.agentUnsupported(name);
+  throw ERRORS.unknownProvider(name);
 }

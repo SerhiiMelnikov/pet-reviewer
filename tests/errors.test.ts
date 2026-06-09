@@ -25,8 +25,6 @@ describe("ERRORS", () => {
   });
 
   it("builds the agent error codes", () => {
-    expect(ERRORS.agentUnsupported("ollama").code).toBe(EErrorCode.AgentUnsupported);
-    expect(ERRORS.agentUnsupported("ollama").message).toContain("ollama");
     expect(ERRORS.cliMaxSteps("x").code).toBe(EErrorCode.CliMaxSteps);
   });
 
@@ -49,5 +47,12 @@ describe("ERRORS", () => {
     expect(ERRORS.cliFailOnCommit().code).toBe(EErrorCode.CliFailOnCommit);
     expect(ERRORS.cliFailOnCommit().message).toContain("--fail-on");
     expect(ERRORS.cliFailOnCommit().message).toContain("--commit");
+  });
+
+  it("builds the timeout validation errors", () => {
+    expect(ERRORS.cliTimeout("0").code).toBe(EErrorCode.CliTimeout);
+    expect(ERRORS.cliTimeout("0").message).toContain("--timeout");
+    expect(ERRORS.configTimeout("reviewer.config.js", "0").code).toBe(EErrorCode.ConfigTimeout);
+    expect(ERRORS.configTimeout("reviewer.config.js", "0").message).toContain("timeout");
   });
 });

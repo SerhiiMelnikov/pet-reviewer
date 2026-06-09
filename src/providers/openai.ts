@@ -85,7 +85,7 @@ export class OpenAICompatibleProvider implements IReviewProvider, IAgentProvider
     readonly baseUrl = "https://api.openai.com/v1",
     readonly temperature = 0,
     private fetchFn: typeof fetch = fetch,
-    private timeoutMs = 180_000,
+    readonly timeoutMs = 180_000,
   ) {}
 
   // Shared transport: POST a request body to /chat/completions, map errors,

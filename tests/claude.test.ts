@@ -200,3 +200,14 @@ describe("ClaudeProvider temperature retry", () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ClaudeProvider timeoutMs", () => {
+  it("passes timeoutMs to the Anthropic client when given, and omits it otherwise", () => {
+    const withTimeout = new ClaudeProvider("k", undefined, 0, undefined, 5000);
+    expect((withTimeout as unknown as { client: { timeout?: number } }).client.timeout).toBe(5000);
+
+    const withoutTimeout = new ClaudeProvider("k", undefined, 0, undefined);
+    // No timeout passed → ClaudeProvider's own 180_000 ms default (unified with the others).
+    expect((withoutTimeout as unknown as { client: { timeout?: number } }).client.timeout).toBe(180_000);
+  });
+});

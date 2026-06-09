@@ -71,11 +71,30 @@ describe("makeGrepTool", () => {
     const out = await makeGrepTool(fakeRun).execute({ pattern: "hello" }, root);
     expect(out).toContain("src/a.ts:1:hello");
   });
-  it("reports no matches when the runner throws", async () => {
+  it("reports no matches when the runner throws with exit code 1", async () => {
     const fakeRun = () => {
-      throw new Error("exit 1");
+      throw Object.assign(new Error("exit 1"), { status: 1 });
     };
     expect(await makeGrepTool(fakeRun).execute({ pattern: "zzz" }, root)).toMatch(/no matches/i);
+  });
+  it("reports a grep error (not no-matches) on an invalid pattern", async () => {
+    const fakeRun = () => {
+      throw Object.assign(new Error("bad pattern"), {
+        status: 2,
+        stderr: "fatal: command line, 'first(': Unmatched ( or \\(",
+      });
+    };
+    const out = await makeGrepTool(fakeRun).execute({ pattern: "first(" }, root);
+    expect(out).toMatch(/grep error/i);
+    expect(out).toContain("Unmatched");
+  });
+  it("reports a grep error when the runner throws with no status", async () => {
+    const fakeRun = () => {
+      throw new Error("permission denied");
+    };
+    const out = await makeGrepTool(fakeRun).execute({ pattern: "x" }, root);
+    expect(out).toMatch(/grep error/i);
+    expect(out).toContain("permission denied");
   });
   it("runs git grep with extended regex (-E before -e)", async () => {
     let captured: string[] = [];

@@ -61,8 +61,9 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
     readonly model = "claude-haiku-4-5-20251001",
     readonly temperature = 0,
     client?: IMessagesClient,
+    readonly timeoutMs = 180_000,
   ) {
-    this.client = client ?? (new Anthropic({ apiKey }) as unknown as IMessagesClient);
+    this.client = client ?? (new Anthropic({ apiKey, timeout: timeoutMs }) as unknown as IMessagesClient);
   }
 
   // Anthropic deprecates `temperature` on some models (opus-4-7/4-8): they 400 with a
