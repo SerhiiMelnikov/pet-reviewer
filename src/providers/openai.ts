@@ -176,6 +176,13 @@ export class OpenAICompatibleProvider implements IReviewProvider, IAgentProvider
     if (text === undefined && toolCalls.length === 0) {
       throw ERRORS.providerEmptyResponse("OpenAI");
     }
-    return { text, toolCalls };
+    return {
+      text,
+      toolCalls,
+      usage: {
+        inputTokens: data.usage?.prompt_tokens ?? 0,
+        outputTokens: data.usage?.completion_tokens ?? 0,
+      },
+    };
   }
 }

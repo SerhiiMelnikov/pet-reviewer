@@ -21,6 +21,8 @@ interface IOllamaToolCall {
 
 interface IOllamaChatResponse {
   message?: { content?: string; tool_calls?: IOllamaToolCall[] };
+  prompt_eval_count?: number;
+  eval_count?: number;
 }
 
 function safeParseArgs(raw: string): Record<string, unknown> {
@@ -183,6 +185,10 @@ export class OllamaProvider implements IReviewProvider, IAgentProvider {
     if (text === undefined && toolCalls.length === 0) {
       throw ERRORS.providerEmptyResponse("Ollama");
     }
-    return { text, toolCalls };
+    return {
+      text,
+      toolCalls,
+      usage: { inputTokens: data.prompt_eval_count ?? 0, outputTokens: data.eval_count ?? 0 },
+    };
   }
 }

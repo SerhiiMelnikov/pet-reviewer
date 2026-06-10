@@ -144,6 +144,6 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
     const toolCalls = res.content
       .filter((b) => b.type === "tool_use")
       .map((b) => ({ id: b.id as string, name: b.name as string, input: b.input ?? {} }));
-    return { text: text || undefined, toolCalls };
+    return { text: text || undefined, toolCalls, usage: this.toUsage(res.usage) };
   }
 }

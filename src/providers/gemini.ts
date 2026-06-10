@@ -194,6 +194,13 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
         signature: p.thoughtSignature,
       }));
 
-    return { text: text || undefined, toolCalls };
+    return {
+      text: text || undefined,
+      toolCalls,
+      usage: {
+        inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+        outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+      },
+    };
   }
 }

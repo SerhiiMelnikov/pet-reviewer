@@ -41,6 +41,7 @@ export interface IMessage {
 export interface IAgentTurn {
   text?: string;
   toolCalls: IToolCall[];
+  usage?: IUsage;
 }
 
 export interface IChatOptions {
