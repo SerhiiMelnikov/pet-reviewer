@@ -39,6 +39,12 @@ export const CONFIG_TEMPLATE = `export default {
     skip: [],
   },
 
+  // Files excluded from review (glob patterns). These are ADDED to a built-in list
+  // (lockfiles, dist/, build/, *.min.js, snapshots). Set ignoreDefaults: false to
+  // use only your own patterns.
+  ignore: [],
+  // ignoreDefaults: false,
+
   // Your own review rules. Violations are reported under the "custom" category
   // with the severity you declare here.
   rules: [

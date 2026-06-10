@@ -161,4 +161,11 @@ describe("OllamaProvider.chat", () => {
     await provider.chat([{ role: "user", content: "hi" }], TOOLS);
     expect(JSON.parse((fetchFn as any).mock.calls[0][1].body).options.temperature).toBe(0.5);
   });
+
+  it("maps prompt_eval_count and eval_count to turn.usage", async () => {
+    const fetchFn = fakeFetch({ message: { content: "ok" }, prompt_eval_count: 55, eval_count: 18 });
+    const turn = await chatProvider(fetchFn).chat([{ role: "user", content: "hi" }], TOOLS);
+
+    expect(turn.usage).toEqual({ inputTokens: 55, outputTokens: 18 });
+  });
 });

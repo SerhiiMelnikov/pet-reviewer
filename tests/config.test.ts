@@ -127,4 +127,9 @@ describe("resolveSettings", () => {
     const settings = resolveSettings({}, { ignore: ["custom/**"], ignoreDefaults: false }, {});
     expect(settings.ignore).toEqual(["custom/**"]);
   });
+
+  it("suppresses all filtering when ignoreDefaults is false and no patterns are given", () => {
+    const settings = resolveSettings({}, { ignoreDefaults: false }, {});
+    expect(settings.ignore).toEqual([]);
+  });
 });

@@ -61,6 +61,18 @@ describe("ClaudeProvider.chat", () => {
     expect(calls[0].tools[0].name).toBe("read_file");
     expect(calls[0].tools[0].input_schema).toEqual({ type: "object" });
   });
+
+  it("maps usage fields from the chat response including cacheReadTokens", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "ok" }],
+      usage: { input_tokens: 200, output_tokens: 40, cache_read_input_tokens: 150 },
+    });
+    const provider = new ClaudeProvider("k", undefined, 0, { messages: { create } } as any);
+
+    const turn = await provider.chat([{ role: "user", content: "hi" }], []);
+
+    expect(turn.usage).toEqual({ inputTokens: 200, outputTokens: 40, cacheReadTokens: 150 });
+  });
 });
 
 describe("ClaudeProvider.chat forceTool", () => {

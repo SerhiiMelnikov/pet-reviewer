@@ -222,4 +222,14 @@ describe("OpenAICompatibleProvider.chat", () => {
     await provider.chat([{ role: "user", content: "hi" }], TOOLS);
     expect(JSON.parse((fetchFn as any).mock.calls[0][1].body).temperature).toBe(0.5);
   });
+
+  it("maps prompt_tokens and completion_tokens to turn.usage", async () => {
+    const fetchFn = fakeFetch({
+      choices: [{ message: { content: "ok" } }],
+      usage: { prompt_tokens: 70, completion_tokens: 15 },
+    });
+    const turn = await chatProvider(fetchFn).chat([{ role: "user", content: "hi" }], TOOLS);
+
+    expect(turn.usage).toEqual({ inputTokens: 70, outputTokens: 15 });
+  });
 });

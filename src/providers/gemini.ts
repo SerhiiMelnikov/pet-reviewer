@@ -19,7 +19,7 @@ interface IGeminiPart {
 
 interface IGeminiResponse {
   candidates?: Array<{ content?: { parts?: IGeminiPart[] } }>;
-  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; cachedContentTokenCount?: number };
 }
 
 // Gemini matches tool results by function NAME and returns no ids. We mint ids that
@@ -148,6 +148,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
       usage: {
         inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
         outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+        cacheReadTokens: data.usageMetadata?.cachedContentTokenCount ?? 0,
       },
     };
   }
@@ -200,6 +201,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
       usage: {
         inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
         outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+        cacheReadTokens: data.usageMetadata?.cachedContentTokenCount ?? 0,
       },
     };
   }

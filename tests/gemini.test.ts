@@ -51,13 +51,13 @@ describe("GeminiProvider", () => {
   it("returns mapped usage from usageMetadata", async () => {
     const fetchFn = fakeFetch({
       candidates: [{ content: { parts: [{ text: "[]" }] } }],
-      usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 9 },
+      usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 9, cachedContentTokenCount: 30 },
     });
     const provider = new GeminiProvider("KEY", undefined, undefined, 0, fetchFn);
 
     const result = await provider.review("p");
 
-    expect(result.usage).toEqual({ inputTokens: 50, outputTokens: 9 });
+    expect(result.usage).toEqual({ inputTokens: 50, outputTokens: 9, cacheReadTokens: 30 });
   });
 
   it("throws a clear error on a non-ok response", async () => {
@@ -217,6 +217,17 @@ describe("GeminiProvider.chat", () => {
 
     const body = JSON.parse((fetchFn as any).mock.calls[0][1].body);
     expect(body.contents[0].parts[0].functionResponse.response).toEqual({ error: "boom" });
+  });
+
+  it("maps usageMetadata to turn.usage including cacheReadTokens", async () => {
+    const fetchFn = fakeFetch({
+      candidates: [{ content: { parts: [{ text: "hello" }] } }],
+      usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 20, cachedContentTokenCount: 60 },
+    });
+    const provider = new GeminiProvider("KEY", "gemini-2.5-flash", undefined, 0, fetchFn);
+    const turn = await provider.chat([{ role: "user", content: "hi" }], TOOLS);
+
+    expect(turn.usage).toEqual({ inputTokens: 100, outputTokens: 20, cacheReadTokens: 60 });
   });
 });
 
