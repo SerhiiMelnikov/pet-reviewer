@@ -216,6 +216,7 @@ export default {
   // Default provider: "claude" | "ollama" | "gemini" | "openai-compatible".
   provider: "claude",
   temperature: 0, // 0 = deterministic reviews; raise toward 1 for more varied output
+  timeout: 180,   // per-request timeout in seconds; raise for slow local models
 
   providers: {
     claude: { model: "claude-haiku-4-5-20251001", apiKey: process.env.ANTHROPIC_API_KEY },
@@ -258,6 +259,9 @@ What each setting affects:
 - **`temperature`** — model sampling temperature (0–1). Default `0` gives the most
   consistent, repeatable reviews; higher values add variety. CLI `--temperature`
   overrides it.
+- **`timeout`** — per-request timeout in seconds (positive integer). When unset, each
+  provider keeps its own default (≈180s); raise it for slow local Ollama models. CLI
+  `--timeout` overrides it.
 - **`commit.blockLevel`** — minimum severity that blocks `--commit`.
 - **`commit.skip`** — categories that never block (still shown in output); also
   respected by `--fail-on`.
