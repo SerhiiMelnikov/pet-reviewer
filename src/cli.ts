@@ -227,9 +227,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
       process.exit(1);
     }
     try {
-      result = parseReview(rawText);
-      result.usage = singleShotUsage;
-      result.steps = 1;
+      result = { ...parseReview(rawText), usage: singleShotUsage, steps: 1 };
     } catch (err) {
       console.error(pc.red(`Failed to parse the model response: ${(err as Error).message}`));
       process.exit(1);
