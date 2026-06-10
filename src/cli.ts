@@ -148,7 +148,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
 
   let diff: string;
   try {
-    diff = getDiff(undefined, opts.base);
+    diff = getDiff(undefined, opts.base, settings.ignore);
   } catch {
     const hint = opts.base
       ? `Could not diff against "${opts.base}". Make sure the ref exists (in CI, fetch it — e.g. actions/checkout with fetch-depth: 0).`
