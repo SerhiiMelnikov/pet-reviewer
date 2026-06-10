@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { IReviewProvider, IAgentProvider, IAgentTurn, IMessage, IToolSpec, TContentBlock, IChatOptions } from "./types";
+import { IReviewProvider, IAgentProvider, IAgentTurn, IMessage, IToolSpec, TContentBlock, IChatOptions, IUsage } from "./types";
 
 // Minimal client contract we need (makes testing easy).
 interface IMessagesClient {
@@ -12,6 +12,11 @@ interface IMessagesClient {
         name?: string;
         input?: Record<string, unknown>;
       }>;
+      usage?: {
+        input_tokens?: number;
+        output_tokens?: number;
+        cache_read_input_tokens?: number;
+      };
     }>;
   };
 }
@@ -83,17 +88,30 @@ export class ClaudeProvider implements IReviewProvider, IAgentProvider {
     }
   }
 
-  async review(prompt: string): Promise<string> {
+  private toUsage(raw?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_read_input_tokens?: number;
+  }): IUsage {
+    return {
+      inputTokens: raw?.input_tokens ?? 0,
+      outputTokens: raw?.output_tokens ?? 0,
+      cacheReadTokens: raw?.cache_read_input_tokens ?? 0,
+    };
+  }
+
+  async review(prompt: string): Promise<{ text: string; usage?: IUsage }> {
     const msg = await this.createWithTempRetry({
       model: this.model,
       max_tokens: 2048,
       temperature: this.temperature,
       messages: [{ role: "user", content: prompt }],
     });
-    return msg.content
+    const text = msg.content
       .filter((b) => b.type === "text")
       .map((b) => b.text ?? "")
       .join("");
+    return { text, usage: this.toUsage(msg.usage) };
   }
 
   async chat(messages: IMessage[], tools: IToolSpec[], opts: IChatOptions = {}): Promise<IAgentTurn> {

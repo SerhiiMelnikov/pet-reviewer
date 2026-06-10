@@ -5,11 +5,14 @@ import {
   IMessage,
   IToolSpec,
   IChatOptions,
+  IUsage,
 } from "./types";
 import { ERRORS } from "../errors";
 
 interface IOllamaResponse {
   response: string;
+  prompt_eval_count?: number;
+  eval_count?: number;
 }
 
 interface IOllamaToolCall {
@@ -135,7 +138,7 @@ export class OllamaProvider implements IReviewProvider, IAgentProvider {
     return res.json();
   }
 
-  async review(prompt: string): Promise<string> {
+  async review(prompt: string): Promise<{ text: string; usage?: IUsage }> {
     const data = (await this.request("/api/generate", {
       model: this.model,
       prompt,
@@ -143,7 +146,13 @@ export class OllamaProvider implements IReviewProvider, IAgentProvider {
       format: "json",
       options: { temperature: this.temperature },
     })) as IOllamaResponse;
-    return data.response;
+    return {
+      text: data.response,
+      usage: {
+        inputTokens: data.prompt_eval_count ?? 0,
+        outputTokens: data.eval_count ?? 0,
+      },
+    };
   }
 
   // Ollama's /api/chat has no tool_choice, so IChatOptions.forceTool (passed by the agent

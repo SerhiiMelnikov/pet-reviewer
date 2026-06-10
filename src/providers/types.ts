@@ -1,7 +1,7 @@
 // Common contract for any LLM review engine.
 export interface IReviewProvider {
-  // Takes a ready prompt, returns the RAW text of the model's response.
-  review(prompt: string): Promise<string>;
+  // Takes a ready prompt; returns the RAW model text plus token usage for the call.
+  review(prompt: string): Promise<{ text: string; usage?: IUsage }>;
 }
 
 // --- Agent mode (tool use) ---

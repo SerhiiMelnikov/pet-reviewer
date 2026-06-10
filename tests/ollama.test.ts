@@ -18,13 +18,22 @@ describe("OllamaProvider", () => {
   it("sends the prompt and returns the response field", async () => {
     const fetchFn = fakeFetch({ response: "[1,2]" });
     const provider = new OllamaProvider("llama3.2", "http://localhost:11434", 0, fetchFn);
-    const result = await provider.review("MY_PROMPT");
+    const { text } = await provider.review("MY_PROMPT");
 
-    expect(result).toBe("[1,2]");
+    expect(text).toBe("[1,2]");
     const [url, init] = (fetchFn as any).mock.calls[0];
     expect(url).toBe("http://localhost:11434/api/generate");
     expect(JSON.parse(init.body).prompt).toBe("MY_PROMPT");
     expect(JSON.parse(init.body).stream).toBe(false);
+  });
+
+  it("returns mapped usage from prompt_eval_count and eval_count", async () => {
+    const fetchFn = fakeFetch({ response: "[]", prompt_eval_count: 40, eval_count: 12 });
+    const provider = new OllamaProvider("llama3.2", "http://localhost:11434", 0, fetchFn);
+
+    const result = await provider.review("p");
+
+    expect(result.usage).toEqual({ inputTokens: 40, outputTokens: 12 });
   });
 
   it("throws a clear error on a non-ok response", async () => {

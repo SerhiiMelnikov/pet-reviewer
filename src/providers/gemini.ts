@@ -6,6 +6,7 @@ import {
   IToolSpec,
   TContentBlock,
   IChatOptions,
+  IUsage,
 } from "./types";
 import { ERRORS } from "../errors";
 
@@ -18,6 +19,7 @@ interface IGeminiPart {
 
 interface IGeminiResponse {
   candidates?: Array<{ content?: { parts?: IGeminiPart[] } }>;
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
 }
 
 // Gemini matches tool results by function NAME and returns no ids. We mint ids that
@@ -132,7 +134,7 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
     return (await res.json()) as IGeminiResponse;
   }
 
-  async review(prompt: string): Promise<string> {
+  async review(prompt: string): Promise<{ text: string; usage?: IUsage }> {
     const data = await this.generate({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json", temperature: this.temperature },
@@ -141,7 +143,13 @@ export class GeminiProvider implements IReviewProvider, IAgentProvider {
     if (text === undefined) {
       throw ERRORS.providerEmptyResponse("Gemini");
     }
-    return text;
+    return {
+      text,
+      usage: {
+        inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+        outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+      },
+    };
   }
 
   // Note: unlike ClaudeProvider (which adds explicit cache_control breakpoints),

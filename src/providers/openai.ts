@@ -5,6 +5,7 @@ import {
   IMessage,
   IToolSpec,
   IChatOptions,
+  IUsage,
 } from "./types";
 import { ERRORS } from "../errors";
 
@@ -18,6 +19,7 @@ interface IOpenAIResponse {
   choices?: Array<{
     message?: { content?: string | null; tool_calls?: IOpenAIToolCall[] };
   }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
 function safeParseArgs(raw: string | undefined): Record<string, unknown> {
@@ -129,7 +131,7 @@ export class OpenAICompatibleProvider implements IReviewProvider, IAgentProvider
     return (await res.json()) as IOpenAIResponse;
   }
 
-  async review(prompt: string): Promise<string> {
+  async review(prompt: string): Promise<{ text: string; usage?: IUsage }> {
     const data = await this.request({
       model: this.model,
       temperature: this.temperature,
@@ -139,7 +141,13 @@ export class OpenAICompatibleProvider implements IReviewProvider, IAgentProvider
     if (content === undefined || content === null) {
       throw ERRORS.providerEmptyResponse("OpenAI");
     }
-    return content;
+    return {
+      text: content,
+      usage: {
+        inputTokens: data.usage?.prompt_tokens ?? 0,
+        outputTokens: data.usage?.completion_tokens ?? 0,
+      },
+    };
   }
 
   async chat(messages: IMessage[], tools: IToolSpec[], opts: IChatOptions = {}): Promise<IAgentTurn> {

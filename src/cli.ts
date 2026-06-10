@@ -14,6 +14,7 @@ import { SEVERITIES, CATEGORIES, TSeverity, TCategory, IReview } from "./schema"
 import { loadConfig, resolveSettings } from "./config";
 import { initConfig } from "./init";
 import { ERRORS } from "./errors";
+import { IUsage } from "./providers/types";
 
 function parseBlockLevel(value: string): TSeverity {
   if ((SEVERITIES as string[]).includes(value)) return value as TSeverity;
@@ -215,8 +216,11 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     }
     diag(pc.dim(`Analyzing changes via "${settings.provider}"...`));
     let rawText: string;
+    let singleShotUsage: IUsage | undefined;
     try {
-      rawText = await provider.review(buildPrompt(diff, settings.rules));
+      const reviewResult = await provider.review(buildPrompt(diff, settings.rules));
+      rawText = reviewResult.text;
+      singleShotUsage = reviewResult.usage;
     } catch (err) {
       console.error(pc.red(`Model request failed: ${(err as Error).message}`));
       process.exit(1);

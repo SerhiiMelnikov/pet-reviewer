@@ -35,9 +35,9 @@ describe("GeminiProvider", () => {
       0,
       fetchFn,
     );
-    const result = await provider.review("MY_PROMPT");
+    const { text } = await provider.review("MY_PROMPT");
 
-    expect(result).toBe("[1,2]");
+    expect(text).toBe("[1,2]");
     const [url, init] = (fetchFn as any).mock.calls[0];
     expect(url).toBe(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
@@ -46,6 +46,18 @@ describe("GeminiProvider", () => {
     const body = JSON.parse(init.body);
     expect(body.contents[0].parts[0].text).toBe("MY_PROMPT");
     expect(body.generationConfig.responseMimeType).toBe("application/json");
+  });
+
+  it("returns mapped usage from usageMetadata", async () => {
+    const fetchFn = fakeFetch({
+      candidates: [{ content: { parts: [{ text: "[]" }] } }],
+      usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 9 },
+    });
+    const provider = new GeminiProvider("KEY", undefined, undefined, 0, fetchFn);
+
+    const result = await provider.review("p");
+
+    expect(result.usage).toEqual({ inputTokens: 50, outputTokens: 9 });
   });
 
   it("throws a clear error on a non-ok response", async () => {

@@ -13,12 +13,24 @@ describe("ClaudeProvider", () => {
     const fakeClient = { messages: { create } };
     const provider = new ClaudeProvider("key", "claude-haiku-4-5-20251001", 0, fakeClient);
 
-    const result = await provider.review("MY_PROMPT");
+    const { text } = await provider.review("MY_PROMPT");
 
-    expect(result).toBe("[]");
+    expect(text).toBe("[]");
     const body = create.mock.calls[0][0];
     expect(body.model).toBe("claude-haiku-4-5-20251001");
     expect(body.messages[0].content).toBe("MY_PROMPT");
+  });
+
+  it("returns mapped usage from the create response", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "[]" }],
+      usage: { input_tokens: 120, output_tokens: 30, cache_read_input_tokens: 80 },
+    });
+    const provider = new ClaudeProvider("key", undefined, 0, { messages: { create } });
+
+    const result = await provider.review("p");
+
+    expect(result.usage).toEqual({ inputTokens: 120, outputTokens: 30, cacheReadTokens: 80 });
   });
 });
 
@@ -165,9 +177,9 @@ describe("ClaudeProvider temperature retry", () => {
       .mockResolvedValueOnce({ content: [{ type: "text", text: "[]" }] });
     const provider = new ClaudeProvider("key", "claude-opus-4-8", 0, { messages: { create } } as any);
 
-    const result = await provider.review("P");
+    const { text } = await provider.review("P");
 
-    expect(result).toBe("[]");
+    expect(text).toBe("[]");
     expect(create).toHaveBeenCalledTimes(2);
     expect(create.mock.calls[0][0]).toHaveProperty("temperature");
     expect(create.mock.calls[1][0]).not.toHaveProperty("temperature");
