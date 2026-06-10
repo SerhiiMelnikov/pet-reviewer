@@ -12,6 +12,13 @@ export interface IToolSpec {
   inputSchema: Record<string, unknown>;
 }
 
+// Token accounting for one model call. Missing fields default to 0 per provider.
+export interface IUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens?: number; // Claude prompt caching; 0/omitted elsewhere
+}
+
 export interface IToolCall {
   id: string;
   name: string;
