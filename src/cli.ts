@@ -14,6 +14,8 @@ import { SEVERITIES, CATEGORIES, TSeverity, TCategory, IReview } from "./schema"
 import { loadConfig, resolveSettings } from "./config";
 import { initConfig } from "./init";
 import { ERRORS } from "./errors";
+import { IUsage } from "./providers/types";
+import { formatUsage } from "./usage";
 
 function parseBlockLevel(value: string): TSeverity {
   if ((SEVERITIES as string[]).includes(value)) return value as TSeverity;
@@ -57,8 +59,8 @@ export function parseTimeout(value?: string): number | undefined {
   return n;
 }
 
-export function reviewToJson(review: IReview): string {
-  return JSON.stringify(review, null, 2);
+export function reviewToJson(review: IReview, usage?: IUsage): string {
+  return JSON.stringify(usage ? { ...review, usage } : review, null, 2);
 }
 
 function parseFailOn(value?: string): TSeverity | undefined {
@@ -148,7 +150,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
 
   let diff: string;
   try {
-    diff = getDiff(undefined, opts.base);
+    diff = getDiff(undefined, opts.base, settings.ignore);
   } catch {
     const hint = opts.base
       ? `Could not diff against "${opts.base}". Make sure the ref exists (in CI, fetch it — e.g. actions/checkout with fetch-depth: 0).`
@@ -215,14 +217,17 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     }
     diag(pc.dim(`Analyzing changes via "${settings.provider}"...`));
     let rawText: string;
+    let singleShotUsage: IUsage | undefined;
     try {
-      rawText = await provider.review(buildPrompt(diff, settings.rules));
+      const reviewResult = await provider.review(buildPrompt(diff, settings.rules));
+      rawText = reviewResult.text;
+      singleShotUsage = reviewResult.usage;
     } catch (err) {
       console.error(pc.red(`Model request failed: ${(err as Error).message}`));
       process.exit(1);
     }
     try {
-      result = parseReview(rawText);
+      result = { ...parseReview(rawText), usage: singleShotUsage, steps: 1 };
     } catch (err) {
       console.error(pc.red(`Failed to parse the model response: ${(err as Error).message}`));
       process.exit(1);
@@ -236,9 +241,10 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     );
   }
   if (opts.json) {
-    console.log(reviewToJson(review));
+    console.log(reviewToJson(review, result.usage));
   } else {
     console.log("\n" + renderFindings(review.findings));
+    if (result.usage) console.log(pc.dim(formatUsage(result.usage, result.steps)));
   }
 
   if (opts.commit) {

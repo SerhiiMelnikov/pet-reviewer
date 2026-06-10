@@ -1,9 +1,12 @@
 import { IFinding, IReview, TSeverity, TCategory, CATEGORIES } from "./schema";
+import { IUsage } from "./providers/types";
 
 export interface INormalizeResult {
   review: IReview;
   dropped: number;
   truncated?: boolean;
+  usage?: IUsage;
+  steps?: number;
 }
 
 const SEVERITY_SYNONYMS: Record<string, TSeverity> = {

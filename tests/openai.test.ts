@@ -26,9 +26,9 @@ describe("OpenAICompatibleProvider", () => {
       0,
       fetchFn,
     );
-    const result = await provider.review("MY_PROMPT");
+    const { text } = await provider.review("MY_PROMPT");
 
-    expect(result).toBe("[1,2]");
+    expect(text).toBe("[1,2]");
     const [url, init] = (fetchFn as any).mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/chat/completions");
     expect(init.headers["Authorization"]).toBe("Bearer KEY");
@@ -36,6 +36,18 @@ describe("OpenAICompatibleProvider", () => {
     expect(body.model).toBe("gpt-4o-mini");
     expect(body.messages[0].content).toBe("MY_PROMPT");
     expect(body.response_format).toBeUndefined();
+  });
+
+  it("returns mapped usage from prompt_tokens and completion_tokens", async () => {
+    const fetchFn = fakeFetch({
+      choices: [{ message: { content: "[]" } }],
+      usage: { prompt_tokens: 70, completion_tokens: 15 },
+    });
+    const provider = new OpenAICompatibleProvider("KEY", undefined, undefined, 0, fetchFn);
+
+    const result = await provider.review("p");
+
+    expect(result.usage).toEqual({ inputTokens: 70, outputTokens: 15 });
   });
 
   it("throws a clear error on a non-ok response", async () => {
@@ -209,5 +221,15 @@ describe("OpenAICompatibleProvider.chat", () => {
     const provider = new OpenAICompatibleProvider("KEY", "gpt-4o-mini", "https://api.openai.com/v1", 0.5, fetchFn);
     await provider.chat([{ role: "user", content: "hi" }], TOOLS);
     expect(JSON.parse((fetchFn as any).mock.calls[0][1].body).temperature).toBe(0.5);
+  });
+
+  it("maps prompt_tokens and completion_tokens to turn.usage", async () => {
+    const fetchFn = fakeFetch({
+      choices: [{ message: { content: "ok" } }],
+      usage: { prompt_tokens: 70, completion_tokens: 15 },
+    });
+    const turn = await chatProvider(fetchFn).chat([{ role: "user", content: "hi" }], TOOLS);
+
+    expect(turn.usage).toEqual({ inputTokens: 70, outputTokens: 15 });
   });
 });

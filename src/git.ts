@@ -16,8 +16,19 @@ export const defaultRunner: TCommandRunner = (cmd, args) => {
 
 // Returns the diff to review: working tree vs HEAD by default, or the three-dot
 // `<base>...HEAD` (the PR diff — changes since the merge-base) when a base ref is given.
-export function getDiff(run: TCommandRunner = defaultRunner, base?: string): string {
+// `ignore` glob patterns become `:(exclude,glob)` pathspecs so git omits those files.
+// The `:(glob)` pathspec magic requires git 2.13+ (2017); on older git the patterns
+// are treated literally rather than as globs.
+export function getDiff(
+  run: TCommandRunner = defaultRunner,
+  base?: string,
+  ignore: string[] = [],
+): string {
   const args = base ? ["diff", `${base}...HEAD`] : ["diff", "HEAD"];
+  if (ignore.length > 0) {
+    // Anchor with `.` so the pure-exclude pathspec list is valid across git versions.
+    args.push("--", ".", ...ignore.map((pattern) => `:(exclude,glob)${pattern}`));
+  }
   return run("git", args);
 }
 

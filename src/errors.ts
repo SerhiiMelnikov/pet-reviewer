@@ -17,6 +17,8 @@ export enum EErrorCode {
   ConfigLoadFailed = "3.10",
   ConfigTemperature = "3.11",
   ConfigTimeout = "3.12",
+  ConfigIgnoreNotArray = "3.13",
+  ConfigIgnoreDefaults = "3.14",
   ParseInvalidJson = "4.1",
   ParseSchemaMismatch = "4.2",
   InitConfigExists = "5.1",
@@ -122,6 +124,10 @@ export const ERRORS = {
       EErrorCode.ConfigTimeout,
       `Invalid "timeout" in ${filename}: "${value}". Use a positive integer number of seconds.`,
     ),
+  configIgnoreNotArray: (filename: string) =>
+    new ReviewerError(EErrorCode.ConfigIgnoreNotArray, `ignore in ${filename} must be an array of strings.`),
+  configIgnoreDefaults: (filename: string) =>
+    new ReviewerError(EErrorCode.ConfigIgnoreDefaults, `ignoreDefaults in ${filename} must be a boolean.`),
 
   // 4.x — parse / model output
   parseInvalidJson: (rawText: string) =>

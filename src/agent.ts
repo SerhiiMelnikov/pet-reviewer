@@ -1,8 +1,9 @@
-import { IAgentProvider, IMessage, IAgentTurn, TContentBlock } from "./providers/types";
+import { IAgentProvider, IMessage, IAgentTurn, TContentBlock, IUsage } from "./providers/types";
 import { AGENT_TOOLS, ALL_TOOL_SPECS, SUBMIT_REVIEW_SPEC } from "./tools/index";
 import { normalizeReview, INormalizeResult } from "./normalize";
 import { buildAgentPrompt } from "./prompt";
 import { IRule } from "./schema";
+import { addUsage } from "./usage";
 
 export interface IAgentOptions {
   maxSteps: number;
@@ -70,9 +71,13 @@ export async function runAgent(
   rules: IRule[] = [],
 ): Promise<INormalizeResult> {
   const messages: IMessage[] = [{ role: "user", content: buildAgentPrompt(diff, rules) }];
+  let usage: IUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 };
+  let steps = 0;
 
   for (let step = 0; step < options.maxSteps; step++) {
     const turn = await provider.chat(messages, ALL_TOOL_SPECS);
+    steps++;
+    if (turn.usage) usage = addUsage(usage, turn.usage);
     appendAssistant(messages, turn);
 
     if (turn.toolCalls.length === 0) {
@@ -85,7 +90,7 @@ export async function runAgent(
 
     const { resultBlocks, finalResult } = await processToolCalls(turn, options.root);
     messages.push({ role: "user", content: resultBlocks });
-    if (finalResult) return finalResult;
+    if (finalResult) return { ...finalResult, usage, steps };
   }
 
   // Steps exhausted with no submit. One forced finalization call — tools limited to
@@ -96,9 +101,11 @@ export async function runAgent(
       "You have run out of steps. Do not call any more read-only tools. Call submit_review now with the findings you have gathered so far. A partial review is fine.",
   });
   const finalTurn = await provider.chat(messages, [SUBMIT_REVIEW_SPEC], { forceTool: "submit_review" });
+  steps++;
+  if (finalTurn.usage) usage = addUsage(usage, finalTurn.usage);
   appendAssistant(messages, finalTurn);
   const { finalResult } = await processToolCalls(finalTurn, options.root);
-  if (finalResult) return { ...finalResult, truncated: true };
+  if (finalResult) return { ...finalResult, truncated: true, usage, steps };
 
   // Even the forced submit produced nothing usable — return an empty review rather
   // than crash, so step exhaustion never leaves the user with nothing. A distinct
@@ -107,5 +114,7 @@ export async function runAgent(
     review: { findings: [], commitMessage: "chore: incomplete agent review" },
     dropped: 0,
     truncated: true,
+    usage,
+    steps,
   };
 }

@@ -121,3 +121,23 @@ describe("runAgent forced finalization", () => {
     expect(result.review.commitMessage).toBe("chore: incomplete agent review");
   });
 });
+
+describe("runAgent usage tracking", () => {
+  it("sums token usage across agent steps", async () => {
+    const provider = scripted([
+      {
+        toolCalls: [{ id: "list_dir__0", name: "list_dir", input: { path: "." } }],
+        usage: { inputTokens: 100, outputTokens: 10 },
+      },
+      {
+        toolCalls: [
+          { id: "submit_review__0", name: "submit_review", input: { findings: [], commitMessage: "x" } },
+        ],
+        usage: { inputTokens: 200, outputTokens: 20 },
+      },
+    ]);
+    const result = await runAgent("diff", provider, { maxSteps: 5, root: process.cwd() });
+    expect(result.usage).toEqual({ inputTokens: 300, outputTokens: 30, cacheReadTokens: 0 });
+    expect(result.steps).toBe(2);
+  });
+});

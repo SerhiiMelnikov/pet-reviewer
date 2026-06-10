@@ -13,12 +13,24 @@ describe("ClaudeProvider", () => {
     const fakeClient = { messages: { create } };
     const provider = new ClaudeProvider("key", "claude-haiku-4-5-20251001", 0, fakeClient);
 
-    const result = await provider.review("MY_PROMPT");
+    const { text } = await provider.review("MY_PROMPT");
 
-    expect(result).toBe("[]");
+    expect(text).toBe("[]");
     const body = create.mock.calls[0][0];
     expect(body.model).toBe("claude-haiku-4-5-20251001");
     expect(body.messages[0].content).toBe("MY_PROMPT");
+  });
+
+  it("returns mapped usage from the create response", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "[]" }],
+      usage: { input_tokens: 120, output_tokens: 30, cache_read_input_tokens: 80 },
+    });
+    const provider = new ClaudeProvider("key", undefined, 0, { messages: { create } });
+
+    const result = await provider.review("p");
+
+    expect(result.usage).toEqual({ inputTokens: 120, outputTokens: 30, cacheReadTokens: 80 });
   });
 });
 
@@ -48,6 +60,18 @@ describe("ClaudeProvider.chat", () => {
     expect(turn.toolCalls).toEqual([{ id: "t1", name: "read_file", input: { path: "a.ts" } }]);
     expect(calls[0].tools[0].name).toBe("read_file");
     expect(calls[0].tools[0].input_schema).toEqual({ type: "object" });
+  });
+
+  it("maps usage fields from the chat response including cacheReadTokens", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "ok" }],
+      usage: { input_tokens: 200, output_tokens: 40, cache_read_input_tokens: 150 },
+    });
+    const provider = new ClaudeProvider("k", undefined, 0, { messages: { create } } as any);
+
+    const turn = await provider.chat([{ role: "user", content: "hi" }], []);
+
+    expect(turn.usage).toEqual({ inputTokens: 200, outputTokens: 40, cacheReadTokens: 150 });
   });
 });
 
@@ -165,9 +189,9 @@ describe("ClaudeProvider temperature retry", () => {
       .mockResolvedValueOnce({ content: [{ type: "text", text: "[]" }] });
     const provider = new ClaudeProvider("key", "claude-opus-4-8", 0, { messages: { create } } as any);
 
-    const result = await provider.review("P");
+    const { text } = await provider.review("P");
 
-    expect(result).toBe("[]");
+    expect(text).toBe("[]");
     expect(create).toHaveBeenCalledTimes(2);
     expect(create.mock.calls[0][0]).toHaveProperty("temperature");
     expect(create.mock.calls[1][0]).not.toHaveProperty("temperature");
