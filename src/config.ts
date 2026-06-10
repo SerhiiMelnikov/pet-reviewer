@@ -7,6 +7,16 @@ import { ERRORS } from "./errors";
 export const CONFIG_FILENAME = "reviewer.config.js";
 export const DEFAULT_PROVIDER = "claude";
 export const DEFAULT_BLOCK_LEVEL: TSeverity = "warning";
+export const DEFAULT_IGNORE: string[] = [
+  "package-lock.json",
+  "yarn.lock",
+  "pnpm-lock.yaml",
+  "dist/**",
+  "build/**",
+  "*.min.js",
+  "*.snap",
+  "__snapshots__/**",
+];
 
 export interface IProviderConfig {
   model?: string;
@@ -29,6 +39,8 @@ export interface IReviewerConfig {
   rules?: IRule[];
   temperature?: number;
   timeout?: number;
+  ignore?: string[];
+  ignoreDefaults?: boolean;
 }
 
 export interface IResolvedSettings {
@@ -41,6 +53,7 @@ export interface IResolvedSettings {
   rules: IRule[];
   temperature: number;
   timeout?: number;
+  ignore: string[];
 }
 
 export function validateConfig(raw: unknown): IReviewerConfig {
@@ -110,6 +123,17 @@ export function validateConfig(raw: unknown): IReviewerConfig {
     throw ERRORS.configTimeout(CONFIG_FILENAME, String(timeout));
   }
 
+  const ignore = config.ignore;
+  if (ignore !== undefined) {
+    if (!Array.isArray(ignore) || ignore.some((p) => typeof p !== "string")) {
+      throw ERRORS.configIgnoreNotArray(CONFIG_FILENAME);
+    }
+  }
+
+  if (config.ignoreDefaults !== undefined && typeof config.ignoreDefaults !== "boolean") {
+    throw ERRORS.configIgnoreDefaults(CONFIG_FILENAME);
+  }
+
   return config;
 }
 
@@ -174,5 +198,6 @@ export function resolveSettings(
     rules: config.rules ?? [],
     temperature: cli.temperature ?? config.temperature ?? 0,
     timeout: cli.timeout ?? config.timeout,
+    ignore: (config.ignoreDefaults === false ? [] : DEFAULT_IGNORE).concat(config.ignore ?? []),
   };
 }

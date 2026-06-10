@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateConfig, resolveSettings } from "../src/config";
+import { validateConfig, resolveSettings, DEFAULT_IGNORE } from "../src/config";
 
 describe("validateConfig", () => {
   it("accepts an empty object", () => {
@@ -88,5 +88,34 @@ describe("validateConfig", () => {
     expect(resolveSettings({ timeout: 600 }, { timeout: 300 }, {}).timeout).toBe(600);
     expect(resolveSettings({}, { timeout: 300 }, {}).timeout).toBe(300);
     expect(resolveSettings({}, {}, {}).timeout).toBeUndefined();
+  });
+
+  it("accepts an ignore array and ignoreDefaults boolean", () => {
+    expect(() => validateConfig({ ignore: ["dist/**"], ignoreDefaults: false })).not.toThrow();
+  });
+
+  it("rejects a non-array ignore", () => {
+    expect(() => validateConfig({ ignore: "dist/**" })).toThrow(/ignore .* must be an array/);
+  });
+
+  it("rejects a non-string element in ignore", () => {
+    expect(() => validateConfig({ ignore: ["ok", 123] })).toThrow(/ignore .* must be an array/);
+  });
+
+  it("rejects a non-boolean ignoreDefaults", () => {
+    expect(() => validateConfig({ ignoreDefaults: "yes" })).toThrow(/ignoreDefaults .* must be a boolean/);
+  });
+});
+
+describe("resolveSettings", () => {
+  it("resolves ignore to defaults merged with config patterns", () => {
+    const settings = resolveSettings({}, { ignore: ["custom/**"] }, {});
+    expect(settings.ignore).toContain("package-lock.json");
+    expect(settings.ignore).toContain("custom/**");
+  });
+
+  it("drops defaults when ignoreDefaults is false", () => {
+    const settings = resolveSettings({}, { ignore: ["custom/**"], ignoreDefaults: false }, {});
+    expect(settings.ignore).toEqual(["custom/**"]);
   });
 });
