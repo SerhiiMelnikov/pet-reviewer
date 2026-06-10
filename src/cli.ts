@@ -15,6 +15,7 @@ import { loadConfig, resolveSettings } from "./config";
 import { initConfig } from "./init";
 import { ERRORS } from "./errors";
 import { IUsage } from "./providers/types";
+import { formatUsage } from "./usage";
 
 function parseBlockLevel(value: string): TSeverity {
   if ((SEVERITIES as string[]).includes(value)) return value as TSeverity;
@@ -58,8 +59,8 @@ export function parseTimeout(value?: string): number | undefined {
   return n;
 }
 
-export function reviewToJson(review: IReview): string {
-  return JSON.stringify(review, null, 2);
+export function reviewToJson(review: IReview, usage?: IUsage): string {
+  return JSON.stringify(usage ? { ...review, usage } : review, null, 2);
 }
 
 function parseFailOn(value?: string): TSeverity | undefined {
@@ -227,6 +228,8 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     }
     try {
       result = parseReview(rawText);
+      result.usage = singleShotUsage;
+      result.steps = 1;
     } catch (err) {
       console.error(pc.red(`Failed to parse the model response: ${(err as Error).message}`));
       process.exit(1);
@@ -240,9 +243,10 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     );
   }
   if (opts.json) {
-    console.log(reviewToJson(review));
+    console.log(reviewToJson(review, result.usage));
   } else {
     console.log("\n" + renderFindings(review.findings));
+    if (result.usage) console.log(pc.dim(formatUsage(result.usage, result.steps)));
   }
 
   if (opts.commit) {
