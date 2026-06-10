@@ -45,6 +45,20 @@ Each finding shows a **severity** icon (🔴 critical, 🟡 warning, 🔵 nit), 
 next line states the problem; the dimmed `↳` line is a suggested fix. Findings are
 grouped by file with a total at the end. No issues → `✓ No issues found — clean!`.
 
+### Token usage
+
+After every run, a one-line token report shows what the call cost:
+
+```text
+Tokens: 3,200 in · 540 out · 1,100 cached  (agent: 4 steps)
+```
+
+`in`/`out` are prompt and completion tokens; `cached` appears when the provider
+served part of the prompt from cache (Claude prompt caching, Gemini implicit caching);
+the `(agent: N steps)` suffix appears only in `--agent` mode and sums usage across every
+step. With `--json`, the same numbers are embedded as a `usage` field in the output
+object instead of being printed.
+
 ## How it works
 
 ```
@@ -202,6 +216,7 @@ export default {
   // Default provider: "claude" | "ollama" | "gemini" | "openai-compatible".
   provider: "claude",
   temperature: 0, // 0 = deterministic reviews; raise toward 1 for more varied output
+  timeout: 180,   // per-request timeout in seconds; raise for slow local models
 
   providers: {
     claude: { model: "claude-haiku-4-5-20251001", apiKey: process.env.ANTHROPIC_API_KEY },
@@ -219,6 +234,11 @@ export default {
     blockLevel: "warning", // severity that blocks the commit
     skip: ["style"],       // categories that never block (still shown)
   },
+  // Files excluded from review (glob patterns), ADDED to a built-in list
+  // (lockfiles, dist/, build/, *.min.js, snapshots). Excluded files never reach
+  // the model — saves tokens and noise. Set ignoreDefaults: false for your list only.
+  ignore: ["docs/**", "*.generated.ts"],
+  // ignoreDefaults: false,
   rules: [
     { text: "No console.log in production code", severity: "warning" },
   ],
@@ -239,9 +259,19 @@ What each setting affects:
 - **`temperature`** — model sampling temperature (0–1). Default `0` gives the most
   consistent, repeatable reviews; higher values add variety. CLI `--temperature`
   overrides it.
+- **`timeout`** — per-request timeout in seconds (positive integer). When unset, each
+  provider keeps its own default (≈180s); raise it for slow local Ollama models. CLI
+  `--timeout` overrides it.
 - **`commit.blockLevel`** — minimum severity that blocks `--commit`.
 - **`commit.skip`** — categories that never block (still shown in output); also
   respected by `--fail-on`.
+- **`ignore`** — glob patterns for files to exclude from the diff before it's sent
+  to the model (e.g. lockfiles, generated code, snapshots). These are **added** to a
+  built-in default list (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `dist/**`,
+  `build/**`, `*.min.js`, `*.snap`, `__snapshots__/**`). Excluded files cost no tokens
+  and produce no findings. Patterns use git's `:(glob)` pathspec syntax (needs git 2.13+).
+- **`ignoreDefaults`** — set to `false` to drop the built-in list and ignore only your
+  own `ignore` patterns. Defaults to `true`.
 - **`rules`** — your own review criteria; violations become `custom` findings
   with the severity you set, so they participate in the gate.
 
