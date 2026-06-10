@@ -110,8 +110,17 @@ describe("validateConfig", () => {
 describe("resolveSettings", () => {
   it("resolves ignore to defaults merged with config patterns", () => {
     const settings = resolveSettings({}, { ignore: ["custom/**"] }, {});
-    expect(settings.ignore).toContain("package-lock.json");
-    expect(settings.ignore).toContain("custom/**");
+    expect(settings.ignore).toEqual([...DEFAULT_IGNORE, "custom/**"]);
+  });
+
+  it("resolves ignore to exactly the defaults when nothing is configured", () => {
+    const settings = resolveSettings({}, {}, {});
+    expect(settings.ignore).toEqual(DEFAULT_IGNORE);
+  });
+
+  it("keeps defaults when ignoreDefaults is explicitly true", () => {
+    const settings = resolveSettings({}, { ignore: ["custom/**"], ignoreDefaults: true }, {});
+    expect(settings.ignore).toEqual([...DEFAULT_IGNORE, "custom/**"]);
   });
 
   it("drops defaults when ignoreDefaults is false", () => {
