@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -124,9 +124,9 @@ describe("runAgent forced finalization", () => {
 
 describe("runAgent usage tracking", () => {
   it("sums token usage across agent steps", async () => {
-    const turns: IAgentTurn[] = [
+    const provider = scripted([
       {
-        toolCalls: [{ id: "list_dir__0", name: "list_dir", input: {} }],
+        toolCalls: [{ id: "list_dir__0", name: "list_dir", input: { path: "." } }],
         usage: { inputTokens: 100, outputTokens: 10 },
       },
       {
@@ -135,10 +135,8 @@ describe("runAgent usage tracking", () => {
         ],
         usage: { inputTokens: 200, outputTokens: 20 },
       },
-    ];
-    let i = 0;
-    const provider = { chat: vi.fn().mockImplementation(async () => turns[i++]) };
-    const result = await runAgent("diff", provider as never, { maxSteps: 5, root: "." });
+    ]);
+    const result = await runAgent("diff", provider, { maxSteps: 5, root: process.cwd() });
     expect(result.usage).toEqual({ inputTokens: 300, outputTokens: 30, cacheReadTokens: 0 });
     expect(result.steps).toBe(2);
   });
