@@ -10,7 +10,7 @@ export function addUsage(a: IUsage, b: IUsage): IUsage {
   };
 }
 
-// One-line human summary; routed through the caller's stderr-safe `diag` in JSON mode.
+// One-line human summary, printed after the findings in non-JSON mode only.
 export function formatUsage(usage: IUsage, steps?: number): string {
   const fmt = (n: number) => n.toLocaleString("en-US");
   const parts = [`${fmt(usage.inputTokens)} in`, `${fmt(usage.outputTokens)} out`];
