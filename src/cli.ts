@@ -5,6 +5,7 @@ import { getDiff, getRepoRoot } from "./git";
 import { buildPrompt } from "./prompt";
 import { parseReview } from "./parse";
 import { renderFindings } from "./render";
+import { reviewToSarif } from "./sarif";
 import { getProvider, getAgentProvider } from "./providers";
 import { runAgent } from "./agent";
 import { INormalizeResult } from "./normalize";
@@ -96,10 +97,11 @@ interface IReviewOpts {
   base?: string;
   failOn?: string;
   json?: boolean;
+  sarif?: boolean;
 }
 
 async function runReview(opts: IReviewOpts): Promise<void> {
-  const diag = opts.json ? console.error : console.log;
+  const diag = opts.json || opts.sarif ? console.error : console.log;
 
   let config;
   try {
@@ -128,6 +130,12 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     }
     if (opts.json && opts.commit) {
       throw ERRORS.cliJsonCommit();
+    }
+    if (opts.sarif && opts.json) {
+      throw ERRORS.cliSarifJson();
+    }
+    if (opts.sarif && opts.commit) {
+      throw ERRORS.cliSarifCommit();
     }
   } catch (err) {
     console.error(pc.red((err as Error).message));
@@ -161,6 +169,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
 
   if (diff.trim() === "") {
     if (opts.json) console.log(reviewToJson({ findings: [], commitMessage: "" }));
+    else if (opts.sarif) console.log(reviewToSarif({ findings: [], commitMessage: "" }));
     else console.log(pc.yellow("No changes to review (git diff is empty)."));
     return;
   }
@@ -242,6 +251,8 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   }
   if (opts.json) {
     console.log(reviewToJson(review, result.usage));
+  } else if (opts.sarif) {
+    console.log(reviewToSarif(review));
   } else {
     console.log("\n" + renderFindings(review.findings));
     if (result.usage) console.log(pc.dim(formatUsage(result.usage, result.steps)));
@@ -311,6 +322,7 @@ export async function run(): Promise<void> {
     .option("--base <ref>", "review committed changes vs this base ref (git diff <ref>...HEAD)")
     .option("--fail-on <level>", "exit non-zero if any finding is at/above this severity (CI gate, no commit)")
     .option("--json", "output the review as JSON to stdout (machine-readable; cannot be combined with --commit)")
+    .option("--sarif", "output the review as SARIF 2.1.0 to stdout (machine-readable; not with --json or --commit)")
     .action(runReview);
 
   await program.parseAsync();
