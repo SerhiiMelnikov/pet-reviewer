@@ -112,6 +112,7 @@ npx pet-reviewer --base origin/main --fail-on warning   # CI: review a branch, f
 | `--base <ref>` | review `git diff <ref>...HEAD` (a branch's committed changes) |
 | `--fail-on <level>` | exit non-zero if any finding is at/above this severity (CI gate) |
 | `--json` | output the review as JSON to stdout (machine-readable; not with `--commit`) |
+| `--sarif` | output the review as SARIF 2.1.0 to stdout (for GitHub code scanning; not with `--json` or `--commit`) |
 
 `npx pet-reviewer init` scaffolds a `reviewer.config.js` — see [Configuration](#configuration).
 
@@ -330,6 +331,22 @@ jobs:
 
 There are three mutually-exclusive gate modes: the local commit gate (`--commit`), the
 CI fail gate (`--base … --fail-on`), and plain review (neither).
+
+**Upload findings to GitHub code scanning (SARIF)** — `--sarif` writes a SARIF 2.1.0
+report to stdout; redirect it to a file and hand it to `upload-sarif`, and findings appear
+in the repo's Security tab and as inline PR annotations — no custom comment scripting:
+
+```yaml
+      - run: npx pet-reviewer --base "origin/${{ github.base_ref }}" --sarif > results.sarif
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+```
+
+`--sarif` is a read-only report (no gate), so it can't be combined with `--commit` or
+`--json`.
 
 **This repo's own workflow** (`.github/workflows/ci.yml`) runs on every pull request: a
 **test** job (suite + type check + build, which gates the PR) and an **advisory review** job
