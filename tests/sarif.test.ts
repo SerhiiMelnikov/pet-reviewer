@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reviewToSarif } from "../src/sarif";
-import { IReview } from "../src/schema";
-import { CATEGORIES } from "../src/schema";
+import { IReview, CATEGORIES } from "../src/schema";
 
 function parse(review: IReview) {
   return JSON.parse(reviewToSarif(review));

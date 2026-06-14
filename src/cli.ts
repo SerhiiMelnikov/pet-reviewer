@@ -128,14 +128,16 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     if (opts.commit && opts.failOn) {
       throw ERRORS.cliFailOnCommit();
     }
-    if (opts.json && opts.commit) {
-      throw ERRORS.cliJsonCommit();
-    }
+    // Check --sarif conflicts before --json+--commit so that passing all three
+    // surfaces the (more unusual) --sarif conflict rather than a misleading message.
     if (opts.sarif && opts.json) {
       throw ERRORS.cliSarifJson();
     }
     if (opts.sarif && opts.commit) {
       throw ERRORS.cliSarifCommit();
+    }
+    if (opts.json && opts.commit) {
+      throw ERRORS.cliJsonCommit();
     }
   } catch (err) {
     console.error(pc.red((err as Error).message));
@@ -252,6 +254,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   if (opts.json) {
     console.log(reviewToJson(review, result.usage));
   } else if (opts.sarif) {
+    // SARIF has no standard field for token usage; omit it.
     console.log(reviewToSarif(review));
   } else {
     console.log("\n" + renderFindings(review.findings));
