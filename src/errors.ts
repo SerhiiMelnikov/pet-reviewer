@@ -31,6 +31,8 @@ export enum EErrorCode {
   CliFailOnCommit = "6.7",
   CliTimeout = "6.8",
   CliJsonCommit = "6.9",
+  CliSarifJson = "6.10",
+  CliSarifCommit = "6.11",
 }
 
 export class ReviewerError extends Error {
@@ -172,5 +174,12 @@ export const ERRORS = {
     new ReviewerError(
       EErrorCode.CliJsonCommit,
       "--json cannot be combined with --commit: --json prints a machine-readable review, while --commit commits when nothing blocks.",
+    ),
+  cliSarifJson: () =>
+    new ReviewerError(EErrorCode.CliSarifJson, "--sarif cannot be combined with --json."),
+  cliSarifCommit: () =>
+    new ReviewerError(
+      EErrorCode.CliSarifCommit,
+      "--sarif cannot be combined with --commit (SARIF is a read-only report).",
     ),
 };

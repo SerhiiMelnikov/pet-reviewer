@@ -61,4 +61,16 @@ describe("ERRORS", () => {
     expect(ERRORS.cliJsonCommit().message).toContain("--json");
     expect(ERRORS.cliJsonCommit().message).toContain("--commit");
   });
+
+  it("cliSarifJson reports the conflicting flags", () => {
+    expect(ERRORS.cliSarifJson().code).toBe(EErrorCode.CliSarifJson);
+    expect(ERRORS.cliSarifJson().message).toContain("--sarif");
+    expect(ERRORS.cliSarifJson().message).toContain("--json");
+  });
+
+  it("cliSarifCommit reports the conflicting flags", () => {
+    expect(ERRORS.cliSarifCommit().code).toBe(EErrorCode.CliSarifCommit);
+    expect(ERRORS.cliSarifCommit().message).toContain("--sarif");
+    expect(ERRORS.cliSarifCommit().message).toContain("--commit");
+  });
 });

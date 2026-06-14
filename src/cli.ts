@@ -5,6 +5,7 @@ import { getDiff, getRepoRoot } from "./git";
 import { buildPrompt } from "./prompt";
 import { parseReview } from "./parse";
 import { renderFindings } from "./render";
+import { reviewToSarif } from "./sarif";
 import { getProvider, getAgentProvider } from "./providers";
 import { runAgent } from "./agent";
 import { INormalizeResult } from "./normalize";
@@ -96,10 +97,11 @@ interface IReviewOpts {
   base?: string;
   failOn?: string;
   json?: boolean;
+  sarif?: boolean;
 }
 
 async function runReview(opts: IReviewOpts): Promise<void> {
-  const diag = opts.json ? console.error : console.log;
+  const diag = opts.json || opts.sarif ? console.error : console.log;
 
   let config;
   try {
@@ -125,6 +127,14 @@ async function runReview(opts: IReviewOpts): Promise<void> {
     }
     if (opts.commit && opts.failOn) {
       throw ERRORS.cliFailOnCommit();
+    }
+    // Check --sarif conflicts before --json+--commit so that passing all three
+    // surfaces the (more unusual) --sarif conflict rather than a misleading message.
+    if (opts.sarif && opts.json) {
+      throw ERRORS.cliSarifJson();
+    }
+    if (opts.sarif && opts.commit) {
+      throw ERRORS.cliSarifCommit();
     }
     if (opts.json && opts.commit) {
       throw ERRORS.cliJsonCommit();
@@ -161,6 +171,7 @@ async function runReview(opts: IReviewOpts): Promise<void> {
 
   if (diff.trim() === "") {
     if (opts.json) console.log(reviewToJson({ findings: [], commitMessage: "" }));
+    else if (opts.sarif) console.log(reviewToSarif({ findings: [], commitMessage: "" }));
     else console.log(pc.yellow("No changes to review (git diff is empty)."));
     return;
   }
@@ -242,6 +253,9 @@ async function runReview(opts: IReviewOpts): Promise<void> {
   }
   if (opts.json) {
     console.log(reviewToJson(review, result.usage));
+  } else if (opts.sarif) {
+    // SARIF has no standard field for token usage; omit it.
+    console.log(reviewToSarif(review));
   } else {
     console.log("\n" + renderFindings(review.findings));
     if (result.usage) console.log(pc.dim(formatUsage(result.usage, result.steps)));
@@ -298,19 +312,20 @@ export async function run(): Promise<void> {
   program
     .command("review", { isDefault: true })
     .description("review the current git diff (and commit with --commit)")
-    .option("-p, --provider <name>", "engine: claude | ollama")
+    .option("-p, --provider <name>", "engine: claude | gemini | openai-compatible | ollama")
     .option("-c, --commit", "create a commit if there are no blocking issues", false)
     .option("--block-level <level>", "severity that blocks the commit: critical | warning | nit")
     .option("--skip <categories>", "comma-separated categories that never block")
     .option("--model <name>", "model to use")
-    .option("--base-url <url>", "Ollama server URL")
-    .option("--agent", "run an agentic review (Claude only): reads files, greps, lists dirs")
+    .option("--base-url <url>", "endpoint URL (Ollama or an OpenAI-compatible service)")
+    .option("--agent", "run an agentic review (any provider): reads files, greps, lists dirs")
     .option("--max-steps <n>", "max agent tool-use steps (default 12)")
     .option("--temperature <n>", "sampling temperature 0..1 (default 0, deterministic)")
     .option("--timeout <seconds>", "per-request timeout in seconds (default 180; raise for slow local models)")
     .option("--base <ref>", "review committed changes vs this base ref (git diff <ref>...HEAD)")
     .option("--fail-on <level>", "exit non-zero if any finding is at/above this severity (CI gate, no commit)")
     .option("--json", "output the review as JSON to stdout (machine-readable; cannot be combined with --commit)")
+    .option("--sarif", "output the review as SARIF 2.1.0 to stdout (machine-readable; not with --json or --commit)")
     .action(runReview);
 
   await program.parseAsync();
