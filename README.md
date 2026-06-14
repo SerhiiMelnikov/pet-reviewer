@@ -15,9 +15,18 @@ npx pet-reviewer init                  # write a starter reviewer.config.js
 npx pet-reviewer                       # review your uncommitted changes
 ```
 
-`init` scaffolds a `reviewer.config.js` you can edit; the bare `pet-reviewer` command
-reviews `git diff HEAD` (staged + unstaged) and prints findings. Add `--commit` to also
-create a commit when nothing blocks. Ollama needs no key (it runs locally).
+`init` scaffolds a `reviewer.config.js` you can edit (pass `--force` to overwrite an
+existing one); the bare `pet-reviewer` command reviews `git diff HEAD` (staged + unstaged)
+and prints findings. Add `--commit` to also create a commit when nothing blocks. Ollama
+needs no key (it runs locally).
+
+**API keys via `.env`** — instead of `export`, you can put keys in a `.env` file in your
+project root; pet-reviewer loads it automatically on startup. Add `.env` to `.gitignore`.
+
+```bash
+# .env
+ANTHROPIC_API_KEY=sk-ant-...
+```
 
 ## Example output
 
